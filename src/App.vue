@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { fetchFinca } from './services/catastro.js'
 
 // Variables reactivas para el panel
 const searchQuery = ref('')
@@ -17,10 +18,13 @@ const mapContext = ref({
 });
 
 const fincaData = ref({
-  refCatastral: 'Cargando...',
-  superficie: '...',
-  uso: '...',
-  ano: '...'
+  estado: 'vacio', // 'vacio' | 'cargando' | 'ok' | 'sin-parcela' | 'error'
+  refCatastral: null,
+  ano: null,
+  superficie: null,
+  uso: null,
+  nInmuebles: null,
+  plantas: null,
 })
 
 let map = null
@@ -507,31 +511,31 @@ onMounted(() => {
           searchMarker.bindPopup(`<b>🏢 Finca Seleccionada</b><br>Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`).openPopup();
         }
 
-        // Magia: Obtenemos la Referencia Catastral REAL usando la API del gobierno
+        // Datos catastrales REALES: coords → ref. de parcela (14) → finca (edificio + unidad)
+        fincaData.value = { ...fincaData.value, estado: 'cargando', refCatastral: null };
         try {
-          const catastroUrl = `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?&SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}`;
-          const catRes = await fetch(catastroUrl);
-          const catText = await catRes.text();
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(catText, "text/xml");
-          
-          const pc1 = xmlDoc.getElementsByTagName("pc1")[0]?.textContent || '';
-          const pc2 = xmlDoc.getElementsByTagName("pc2")[0]?.textContent || '';
-          
-          if (pc1 && pc2) {
-            fincaData.value.refCatastral = pc1 + pc2;
-            // Simulamos los datos físicos para el MVP (En real se hace otra llamada a Catastro con la RC)
-            fincaData.value.superficie = Math.floor(Math.random() * (120 - 50 + 1) + 50);
-            fincaData.value.ano = Math.floor(Math.random() * (2015 - 1960 + 1) + 1960);
-            fincaData.value.uso = 'Residencial';
+          const coordUrl = `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}`;
+          const coordDoc = new DOMParser().parseFromString(await (await fetch(coordUrl)).text(), 'text/xml');
+          const pc1 = coordDoc.getElementsByTagName('pc1')[0]?.textContent || '';
+          const pc2 = coordDoc.getElementsByTagName('pc2')[0]?.textContent || '';
+
+          if (!pc1 || !pc2) {
+            fincaData.value = { estado: 'sin-parcela', refCatastral: null, ano: null, superficie: null, uso: null, nInmuebles: null, plantas: null };
           } else {
-            fincaData.value.refCatastral = 'No disponible';
-            fincaData.value.superficie = '--';
-            fincaData.value.uso = '--';
-            fincaData.value.ano = '--';
+            const finca = await fetchFinca(pc1 + pc2);
+            fincaData.value = {
+              estado: 'ok',
+              refCatastral: finca.rc14,
+              ano: finca.ano,
+              superficie: finca.superficie,
+              uso: finca.uso,
+              nInmuebles: finca.nInmuebles,
+              plantas: finca.plantas,
+            };
           }
         } catch (catErr) {
-          console.error("Error Catastro", catErr);
+          console.error('Error Catastro', catErr);
+          fincaData.value = { ...fincaData.value, estado: 'error' };
         }
 
       } catch (error) {
@@ -629,53 +633,81 @@ onMounted(() => {
 
         <!-- NIVEL 4: FINCA (CATASTRO) -->
         <div v-else-if="mapContext.level === 'finca'" class="context-panel">
-          <h2 class="address-title" v-if="selectedAddress">📍 {{ selectedAddress }}</h2>
-          <h2 class="address-title" v-else>📍 Explorador de Fincas</h2>
+          <div v-if="selectedAddress" class="ficha-header">
+            <div class="ficha-crumb">Barcelona · Catastro en vivo</div>
+            <h2 class="ficha-address">{{ selectedAddress }}</h2>
+            <div v-if="fincaData.refCatastral" class="ficha-ref">
+              <span class="ficha-ref-label">Ref. parcela</span>
+              <span class="ficha-ref-value">{{ fincaData.refCatastral }}</span>
+            </div>
+          </div>
+          <h2 class="address-title" v-else>📍 Explorador de fincas</h2>
           
           <div v-if="!selectedAddress" class="empty-state">
             <p>Haz clic en cualquier parcela del mapa para cargar los datos en vivo del Catastro y las afectaciones urbanísticas (PIU).</p>
           </div>
           
           <div v-else>
-            <!-- Tarjeta: Datos Oficiales -->
-            <div class="data-card">
-              <h3>🏛️ Datos Oficiales (Catastro)</h3>
-              <div class="data-grid">
-                <div class="data-item">
-                  <span class="label">Ref. Catastral</span>
-                  <span class="value ref-catastral">{{ fincaData.refCatastral }}</span>
+            <!-- La Finca (Catastro) -->
+            <div class="ficha-block">
+              <div class="ficha-block-head">
+                <span class="ficha-block-title">La Finca</span>
+                <span class="ficha-source">FUENTE · Catastro</span>
+              </div>
+
+              <div v-if="fincaData.estado === 'cargando'" class="ficha-grid">
+                <div v-for="n in 6" :key="n" class="ficha-cell"><span class="skeleton"></span></div>
+              </div>
+
+              <div v-else-if="fincaData.estado === 'ok'" class="ficha-grid">
+                <div class="ficha-cell">
+                  <span class="ficha-k">Año constr.</span>
+                  <span class="ficha-v">{{ fincaData.ano ?? '—' }}</span>
                 </div>
-                <div class="data-item">
-                  <span class="label">Superficie</span>
-                  <span class="value">{{ fincaData.superficie }} m²</span>
+                <div class="ficha-cell">
+                  <span class="ficha-k">Superficie</span>
+                  <span class="ficha-v"><template v-if="fincaData.superficie">{{ fincaData.superficie }}<small> m²</small></template><template v-else>—</template></span>
                 </div>
-                <div class="data-item">
-                  <span class="label">Uso Principal</span>
-                  <span class="value">{{ fincaData.uso }}</span>
+                <div class="ficha-cell">
+                  <span class="ficha-k">Plantas</span>
+                  <span class="ficha-v">{{ fincaData.plantas ?? '—' }}</span>
                 </div>
-                <div class="data-item">
-                  <span class="label">Año Constr.</span>
-                  <span class="value">{{ fincaData.ano }}</span>
+                <div class="ficha-cell">
+                  <span class="ficha-k">Inmuebles</span>
+                  <span class="ficha-v">{{ fincaData.nInmuebles ?? '—' }}</span>
                 </div>
+                <div class="ficha-cell">
+                  <span class="ficha-k">Uso princ.</span>
+                  <span class="ficha-v ficha-v-sm">{{ fincaData.uso ?? '—' }}</span>
+                </div>
+                <div class="ficha-cell">
+                  <span class="ficha-k">Valor cat.</span>
+                  <span class="ficha-v ficha-v-sm ficha-na" title="El valor catastral no es un dato público">no público</span>
+                </div>
+              </div>
+
+              <div v-else-if="fincaData.estado === 'sin-parcela'" class="ficha-msg">
+                Sin parcela catastral en este punto. Prueba sobre un edificio.
+              </div>
+              <div v-else-if="fincaData.estado === 'error'" class="ficha-msg ficha-msg-err">
+                No se pudo consultar el Catastro. Reintenta el clic.
               </div>
             </div>
 
-            <!-- Tarjeta Expandible: Afectaciones Viales -->
-            <div class="data-card">
+            <!-- Afectaciones urbanísticas (pendiente de fuente oficial) -->
+            <div class="ficha-block">
               <details class="expandable">
-                <summary>🚧 Afectaciones Urbanísticas (PIU)</summary>
+                <summary>🚧 Afectaciones urbanísticas (PIU)</summary>
                 <div class="details-content">
-                  <p><strong>Estado:</strong> Zona en reordenación volumétrica.</p>
-                  <p><strong>Riesgo:</strong> Medio. Posible afectación de fachada.</p>
-                  <a href="#" class="link-btn">Ver ficha oficial en el Ayuntamiento</a>
+                  <p class="ficha-na">Pendiente de conectar con la fuente oficial del Ajuntament.</p>
                 </div>
               </details>
             </div>
 
             <!-- Acciones -->
             <div class="action-buttons">
-              <button class="street-view-btn">🚶‍♂️ Ver en Street View</button>
-              <button class="export-btn" @click="exportReport">📥 Generar Informe de Inversión (PDF)</button>
+              <button class="street-view-btn">🚶 Ver en Street View</button>
+              <button class="export-btn" @click="exportReport">📄 Generar informe (PDF)</button>
             </div>
           </div>
         </div>
@@ -1034,4 +1066,69 @@ details.expandable summary {
   display: none !important;
 }
 
+</style>
+
+<!-- Sistema visual de la Ficha de Propiedad (diseño BCN Radar) -->
+<style>
+.ficha-header { margin-bottom: 20px; }
+.ficha-crumb {
+  font: 600 9px/1 'IBM Plex Mono', monospace;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: #2D5BD0; margin-bottom: 10px;
+}
+.ficha-address {
+  font: 600 22px/1.12 'Source Serif 4', Georgia, serif;
+  letter-spacing: -.01em; color: #0E1726; margin: 0 0 12px;
+}
+.ficha-ref { display: flex; align-items: center; gap: 8px; }
+.ficha-ref-label {
+  font: 600 8px/1 'Inter', sans-serif; letter-spacing: .1em;
+  text-transform: uppercase; color: #9098A4;
+}
+.ficha-ref-value {
+  font: 500 11px/1 'IBM Plex Mono', monospace; color: #404B5E;
+  background: #F3F5F8; border: 1px solid #E7EAF0; padding: 3px 6px; border-radius: 5px;
+}
+
+.ficha-block { margin-bottom: 16px; }
+.ficha-block-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.ficha-block-title {
+  font: 600 12px/1 'Inter', sans-serif; letter-spacing: .04em; color: #0E1726;
+}
+.ficha-source {
+  font: 500 9px/1 'IBM Plex Mono', monospace; color: #64748B;
+  background: #F1F3F6; border: 1px solid #E6E9EF; padding: 4px 8px; border-radius: 5px;
+}
+
+.ficha-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px;
+  background: #EEF0F4; border: 1px solid #EEF0F4; border-radius: 10px; overflow: hidden;
+}
+.ficha-cell {
+  background: #fff; padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 7px; min-height: 56px;
+}
+.ficha-k {
+  font: 500 9px/1 'Inter', sans-serif; letter-spacing: .07em;
+  text-transform: uppercase; color: #9098A4;
+}
+.ficha-v { font: 600 18px/1 'IBM Plex Mono', monospace; color: #0E1726; }
+.ficha-v small { font-size: 11px; color: #9098A4; }
+.ficha-v-sm { font: 600 13px/1.1 'Inter', sans-serif; }
+.ficha-na { color: #B6BCC6; }
+
+.ficha-msg {
+  font: 500 12px/1.5 'Inter', sans-serif; color: #7f8c8d;
+  padding: 12px 14px; background: #FAFBFC; border: 1px solid #EAEDF2; border-radius: 10px;
+}
+.ficha-msg-err { color: #c0392b; background: #FBEDEB; border-color: #F5C6CB; }
+
+.skeleton {
+  display: block; height: 18px; width: 72%; border-radius: 4px;
+  background: linear-gradient(90deg, #EEF0F4 25%, #F6F7F9 50%, #EEF0F4 75%);
+  background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite;
+}
+@keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
