@@ -19,10 +19,12 @@ const mapContext = ref({
 
 const fincaData = ref({
   estado: 'vacio', // 'vacio' | 'cargando' | 'ok' | 'sin-parcela' | 'error'
-  refCatastral: null,
+  refCatastral: null,   // RC parcela (14)
+  rcInmueble: null,     // RC inmueble (20)
   ano: null,
   superficie: null,
   uso: null,
+  coefParticipacion: null,
   nInmuebles: null,
   plantas: null,
 })
@@ -43,6 +45,40 @@ const satelliteThumb = computed(() => {
 const antiguedad = computed(() =>
   fincaData.value.ano ? new Date().getFullYear() - fincaData.value.ano : null
 )
+
+// Superficie útil estimada (~85% de la construida) — siempre marcada como estimación
+const supUtilEstimada = computed(() =>
+  fincaData.value.superficie ? Math.round(fincaData.value.superficie * 0.85) : null
+)
+
+// Deep-links oficiales con la referencia catastral inyectada (regla de verificabilidad)
+const deepLinks = computed(() => {
+  const rc14 = fincaData.value.refCatastral
+  const rc20 = fincaData.value.rcInmueble
+  return {
+    catastro: rc14 ? `https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCConCiud.aspx?RefC=${rc20 || rc14}&del=&mun=` : 'https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCBusqueda.aspx',
+    piu: rc14 ? `https://ajuntament.barcelona.cat/informaciourbanistica/cerca/es/fitxa/${rc14}/--/--/pa/` : '#',
+    cedula: 'https://agenciahabitatge.gencat.cat/es/temas/rehabilitacion-y-calidad-de-la-edificacion/control-de-calidad-de-la-vivienda/buscador-de-cedulas',
+    cee: 'https://certificacioenergetica.gencat.cat/icaen-visor/AppJava/views/portada.xhtml',
+    indiceAlquiler: 'https://agenciahabitatge.gencat.cat/indexlloguer/',
+    hutb: 'https://meet.barcelona.cat/habitatgesturistics/es',
+  }
+})
+
+// Copiar al portapapeles (referencias catastrales)
+const copiar = (texto) => {
+  if (texto && navigator.clipboard) navigator.clipboard.writeText(texto)
+}
+
+// Checklist del comprador (contenido estático didáctico — NO se inventa nada privado)
+const checklistComprador = [
+  { icono: '📄', titulo: 'Nota Simple (Registro de la Propiedad)', desc: 'Comprueba titularidad real, hipotecas vigentes, embargos o usufructos.', url: 'https://sede.registradores.org/site/propiedad' },
+  { icono: '🏗️', titulo: 'ITE y Certificado de Aptitud', desc: 'Obligatorio si el edificio tiene >45 años. Te salva de vicios estructurales y derramas.', url: null },
+  { icono: '📜', titulo: 'Cédula de Habitabilidad y CEE', desc: 'La cédula garantiza mínimos de habitabilidad. Ambos obligatorios para arras y notaría.', url: null },
+  { icono: '🏛️', titulo: 'Certificado de Deudas de la Comunidad', desc: 'Emitido por el Administrador. Evita heredar deudas o derramas aprobadas (Art. 9 LPH).', url: null },
+  { icono: '🧾', titulo: 'Último recibo de IBI y Basuras', desc: 'Asegura que los impuestos municipales están al día; el año en curso se prorratea.', url: null },
+  { icono: '⚡', titulo: 'Últimas facturas de suministros', desc: 'Evita cortes; si la luz lleva meses de baja, exigirán un nuevo Boletín (CIE).', url: 'https://www.edistribucion.com/' },
+]
 
 let map = null
 let searchMarker = null
@@ -544,9 +580,11 @@ onMounted(() => {
             fincaData.value = {
               estado: 'ok',
               refCatastral: finca.rc14,
+              rcInmueble: finca.rcInmueble,
               ano: finca.ano,
               superficie: finca.superficie,
               uso: finca.uso,
+              coefParticipacion: finca.coefParticipacion,
               nInmuebles: finca.nInmuebles,
               plantas: finca.plantas,
             };
@@ -671,7 +709,7 @@ onMounted(() => {
           </div>
           
           <div v-else>
-            <!-- La Finca (Catastro) -->
+            <!-- ===== GRUPO 1: DATOS OFICIALES (CONTRASTABLES) ===== -->
             <div class="ficha-block">
               <div class="ficha-block-head">
                 <span class="ficha-block-title">La Finca</span>
@@ -682,35 +720,54 @@ onMounted(() => {
                 <div v-for="n in 6" :key="n" class="ficha-cell"><span class="skeleton"></span></div>
               </div>
 
-              <div v-else-if="fincaData.estado === 'ok'" class="ficha-grid">
-                <div class="ficha-cell">
-                  <span class="ficha-k">Año constr.</span>
-                  <span class="ficha-v">{{ fincaData.ano ?? '—' }}</span>
-                  <span v-if="antiguedad" class="ficha-sub">{{ antiguedad }} años</span>
+              <template v-else-if="fincaData.estado === 'ok'">
+                <!-- Referencias registrales: la llave maestra -->
+                <div class="ficha-reg">
+                  <div class="ficha-reg-row">
+                    <span class="ficha-reg-k">Parcela (14)</span>
+                    <span class="ficha-reg-rc">{{ fincaData.refCatastral }}</span>
+                    <button class="ficha-copy" @click="copiar(fincaData.refCatastral)" title="Copiar parcela">⧉</button>
+                  </div>
+                  <div v-if="fincaData.rcInmueble" class="ficha-reg-row">
+                    <span class="ficha-reg-k">Inmueble (20)</span>
+                    <span class="ficha-reg-rc">{{ fincaData.rcInmueble }}</span>
+                    <button class="ficha-copy" @click="copiar(fincaData.rcInmueble)" title="Copiar inmueble">⧉</button>
+                  </div>
+                  <a class="ficha-verify" :href="deepLinks.catastro" target="_blank" rel="noopener">🔗 Verificar en Sede del Catastro</a>
                 </div>
-                <div class="ficha-cell">
-                  <span class="ficha-k">Superficie</span>
-                  <span class="ficha-v"><template v-if="fincaData.superficie">{{ fincaData.superficie }}<small> m²</small></template><template v-else>—</template></span>
-                  <span v-if="fincaData.superficie" class="ficha-sub">{{ fincaData.nInmuebles > 1 ? 'unidad de ref.' : 'construida' }}</span>
+
+                <!-- KPIs físicos -->
+                <div class="ficha-grid">
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Año constr.</span>
+                    <span class="ficha-v">{{ fincaData.ano ?? '—' }}</span>
+                    <span v-if="antiguedad" class="ficha-sub">{{ antiguedad }} años</span>
+                  </div>
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Sup. constr.</span>
+                    <span class="ficha-v"><template v-if="fincaData.superficie">{{ fincaData.superficie }}<small> m²</small></template><template v-else>—</template></span>
+                    <span v-if="fincaData.superficie" class="ficha-sub">{{ fincaData.nInmuebles > 1 ? 'unidad ref.' : 'construida' }}</span>
+                  </div>
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Sup. útil est.</span>
+                    <span class="ficha-v"><template v-if="supUtilEstimada">{{ supUtilEstimada }}<small> m²</small></template><template v-else>—</template></span>
+                    <span v-if="supUtilEstimada" class="ficha-sub">estimada</span>
+                  </div>
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Plantas</span>
+                    <span class="ficha-v">{{ fincaData.plantas ?? '—' }}</span>
+                  </div>
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Inmuebles</span>
+                    <span class="ficha-v">{{ fincaData.nInmuebles ?? '—' }}</span>
+                    <span v-if="fincaData.nInmuebles" class="ficha-sub">en la finca</span>
+                  </div>
+                  <div class="ficha-cell">
+                    <span class="ficha-k">Uso princ.</span>
+                    <span class="ficha-v ficha-v-sm">{{ fincaData.uso ?? '—' }}</span>
+                  </div>
                 </div>
-                <div class="ficha-cell">
-                  <span class="ficha-k">Plantas</span>
-                  <span class="ficha-v">{{ fincaData.plantas ?? '—' }}</span>
-                </div>
-                <div class="ficha-cell">
-                  <span class="ficha-k">Inmuebles</span>
-                  <span class="ficha-v">{{ fincaData.nInmuebles ?? '—' }}</span>
-                  <span v-if="fincaData.nInmuebles" class="ficha-sub">en la finca</span>
-                </div>
-                <div class="ficha-cell">
-                  <span class="ficha-k">Uso princ.</span>
-                  <span class="ficha-v ficha-v-sm">{{ fincaData.uso ?? '—' }}</span>
-                </div>
-                <div class="ficha-cell">
-                  <span class="ficha-k">Valor cat.</span>
-                  <span class="ficha-v ficha-v-sm ficha-na" title="El valor catastral no es un dato público">no público</span>
-                </div>
-              </div>
+              </template>
 
               <div v-else-if="fincaData.estado === 'sin-parcela'" class="ficha-msg">
                 Sin parcela catastral en este punto. Prueba sobre un edificio.
@@ -720,19 +777,76 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Afectaciones urbanísticas (pendiente de fuente oficial) -->
-            <div class="ficha-block">
-              <details class="expandable">
-                <summary>🚧 Afectaciones urbanísticas (PIU)</summary>
-                <div class="details-content">
-                  <p class="ficha-na">Pendiente de conectar con la fuente oficial del Ajuntament.</p>
+            <!-- Resto del dossier solo si hay datos -->
+            <template v-if="fincaData.estado === 'ok'">
+              <!-- Urbanismo (PIU) -->
+              <div class="ficha-block">
+                <div class="ficha-block-head">
+                  <span class="ficha-block-title">Urbanismo (PIU)</span>
+                  <a class="ficha-verify-sm" :href="deepLinks.piu" target="_blank" rel="noopener">🔗 Ficha PIU</a>
                 </div>
-              </details>
-            </div>
+                <div class="ficha-note">Calificación urbanística y afectaciones: consúltalas en la ficha oficial del Ajuntament (se abre con esta parcela).</div>
+              </div>
+
+              <!-- Cumplimiento: Cédula y CEE -->
+              <div class="ficha-block">
+                <div class="ficha-block-head"><span class="ficha-block-title">Cumplimiento</span></div>
+                <a class="ficha-doc" :href="deepLinks.cedula" target="_blank" rel="noopener">
+                  <span class="ficha-doc-main">
+                    <span class="ficha-doc-t">Cédula de habitabilidad</span>
+                    <span class="ficha-doc-d">Búscala con la ref. de inmueble (20)</span>
+                  </span>
+                  <span class="ficha-badge">consultar 🔗</span>
+                </a>
+                <a class="ficha-doc" :href="deepLinks.cee" target="_blank" rel="noopener">
+                  <span class="ficha-doc-main">
+                    <span class="ficha-doc-t">Certificado energético (CEE)</span>
+                    <span class="ficha-doc-d">Búscalo con la ref. de inmueble (20)</span>
+                  </span>
+                  <span class="ficha-badge">consultar 🔗</span>
+                </a>
+              </div>
+
+              <!-- ===== GRUPO 2: PRIVADO / DUE DILIGENCE ===== -->
+              <div class="ficha-grouptag">Privado · a solicitar al propietario</div>
+
+              <div class="ficha-block">
+                <div class="ficha-block-head"><span class="ficha-block-title">Gastos ordinarios</span></div>
+                <div class="ficha-gasto-row"><span>IBI (anual)</span><span class="ficha-na">a solicitar</span></div>
+                <div class="ficha-gasto-row"><span>Comunidad (mes)</span><span class="ficha-na">a solicitar</span></div>
+                <div class="ficha-gasto-row"><span>Tasa de basuras</span><span class="ficha-na">a solicitar</span></div>
+                <div class="ficha-note-sm">No los inventamos: dependen del inmueble y los aporta el vendedor.</div>
+              </div>
+
+              <!-- Checklist del comprador -->
+              <div class="ficha-block">
+                <div class="ficha-block-head"><span class="ficha-block-title">Checklist del comprador</span></div>
+                <p class="ficha-note-sm">Papeles a exigir al propietario antes de firmar arras o ir a notaría:</p>
+                <div class="ficha-check" v-for="(d, i) in checklistComprador" :key="i">
+                  <div class="ficha-check-head">
+                    <span class="ficha-check-t">{{ d.icono }} {{ d.titulo }}</span>
+                    <a v-if="d.url" class="ficha-verify-sm" :href="d.url" target="_blank" rel="noopener">🔗</a>
+                  </div>
+                  <p class="ficha-check-d">{{ d.desc }}</p>
+                </div>
+              </div>
+
+              <!-- Enlaces de interés -->
+              <div class="ficha-block">
+                <div class="ficha-block-head"><span class="ficha-block-title">Enlaces de la finca</span></div>
+                <a class="ficha-link" :href="deepLinks.indiceAlquiler" target="_blank" rel="noopener">
+                  <span class="ficha-link-t">📈 Índice de referencia de alquiler</span>
+                  <span class="ficha-link-d">Tope legal de la renta para esta zona (Ley de Vivienda).</span>
+                </a>
+                <a class="ficha-link" :href="deepLinks.hutb" target="_blank" rel="noopener">
+                  <span class="ficha-link-t">🧳 Licencias turísticas (HUTB)</span>
+                  <span class="ficha-link-d">Comprueba si hay viviendas de uso turístico cerca.</span>
+                </a>
+              </div>
+            </template>
 
             <!-- Acciones -->
             <div class="action-buttons">
-              <button class="street-view-btn">🚶 Ver en Street View</button>
               <button class="export-btn" @click="exportReport">📄 Generar informe (PDF)</button>
             </div>
           </div>
@@ -1164,4 +1278,46 @@ details.expandable summary {
   background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite;
 }
 @keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Referencias registrales + verificación */
+.ficha-reg { background: #FAFBFC; border: 1px solid #EAEDF2; border-radius: 10px; padding: 12px 13px; margin-bottom: 12px; }
+.ficha-reg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.ficha-reg-k { font: 600 8px/1 'Inter', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #9098A4; width: 76px; flex: none; }
+.ficha-reg-rc { font: 500 11px/1.3 'IBM Plex Mono', monospace; color: #0E1726; word-break: break-all; flex: 1; }
+.ficha-copy { flex: none; border: none; background: none; cursor: pointer; color: #B6BCC6; font-size: 13px; padding: 2px; line-height: 1; transition: color .15s; }
+.ficha-copy:hover { color: #2D5BD0; }
+.ficha-verify { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; font: 600 10px/1 'Inter', sans-serif; color: #2D5BD0; text-decoration: none; }
+.ficha-verify:hover { text-decoration: underline; }
+.ficha-verify-sm { font: 600 9px/1 'Inter', sans-serif; color: #2D5BD0; text-decoration: none; }
+.ficha-verify-sm:hover { text-decoration: underline; }
+
+.ficha-note { font: 500 11px/1.5 'Inter', sans-serif; color: #6B7280; }
+.ficha-note-sm { font: 500 10px/1.5 'Inter', sans-serif; color: #9098A4; margin: 0 0 9px; }
+
+/* Documentos (Cédula / CEE) */
+.ficha-doc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #EAEDF2; border-radius: 9px; margin-bottom: 8px; text-decoration: none; background: #fff; transition: border-color .15s; }
+.ficha-doc:hover { border-color: #C3D2F2; }
+.ficha-doc-main { display: flex; flex-direction: column; gap: 3px; }
+.ficha-doc-t { font: 600 12px/1.2 'Inter', sans-serif; color: #0E1726; }
+.ficha-doc-d { font: 500 9px/1.2 'Inter', sans-serif; color: #9098A4; }
+.ficha-badge { flex: none; font: 600 9px/1 'IBM Plex Mono', monospace; color: #5B616B; background: #F1F3F6; border: 1px solid #E6E9EF; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
+
+/* Tag de grupo (privado) */
+.ficha-grouptag { font: 600 9px/1 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #312E81; display: inline-block; padding: 5px 9px; border-radius: 6px; margin: 6px 0 14px; }
+
+/* Gastos */
+.ficha-gasto-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #EEF0F4; font: 500 11px/1 'Inter', sans-serif; color: #5B616B; }
+.ficha-gasto-row:last-of-type { border-bottom: none; }
+
+/* Checklist del comprador */
+.ficha-check { background: #FAFBFC; border: 1px solid #EAEDF2; border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; }
+.ficha-check-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ficha-check-t { font: 600 11px/1.35 'Inter', sans-serif; color: #0E1726; }
+.ficha-check-d { font: 500 9px/1.45 'Inter', sans-serif; color: #9098A4; margin: 5px 0 0; }
+
+/* Enlaces de interés */
+.ficha-link { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; border: 1px solid #EAEDF2; border-radius: 9px; margin-bottom: 8px; text-decoration: none; background: #fff; transition: all .15s; }
+.ficha-link:hover { border-color: #C3D2F2; background: #F7F9FE; }
+.ficha-link-t { font: 600 11px/1.2 'Inter', sans-serif; color: #2D5BD0; }
+.ficha-link-d { font: 500 9px/1.3 'Inter', sans-serif; color: #9098A4; }
 </style>

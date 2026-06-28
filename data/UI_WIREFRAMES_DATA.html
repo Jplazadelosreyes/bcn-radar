@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCN Radar - Wireframes de Datos (5 Hitos)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        .panel { background-color: white; border-right: 1px solid #e5e7eb; width: 340px; height: 100vh; overflow-y: auto; padding: 1.5rem; flex-shrink: 0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .data-card { background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="p-6 overflow-x-auto bg-gray-100 flex gap-4 h-screen items-start">
+
+    <!-- NIVEL 1: CIUDAD -->
+    <div class="panel">
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">🌍 Nivel 1: Ciudad</h2>
+        <p class="text-xs text-gray-500 mt-1">Barcelona (Visión Macro)</p>
+
+        <div class="section-title">Contexto Legal para Vivir</div>
+        <div class="data-card border-l-4 border-red-500 relative">
+            <a href="https://agenciahabitatge.gencat.cat/" target="_blank" class="absolute top-2 right-2 text-[8px] text-red-500 hover:underline">🔗 Ley Vivienda</a>
+            <p class="font-bold text-sm text-gray-800">Zona Tensionada: SÍ</p>
+            <p class="text-xs text-gray-600 mt-1">Los alquileres están topados por ley. Tienes derecho a exigir el índice de referencia.</p>
+        </div>
+
+        <div class="section-title">Impuestos de Compra</div>
+        <div class="data-card border-l-4 border-amber-500">
+            <p class="font-bold text-sm text-gray-800">ITP (Transmisiones): 10%</p>
+            <p class="text-xs text-gray-600 mt-1">Si compras para vivir y tienes <32 años (y renta baja), puedes bonificarlo al 5%.</p>
+        </div>
+    </div>
+
+    <!-- NIVEL 2: DISTRITO -->
+    <div class="panel">
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">🏢 Nivel 2: Distrito</h2>
+        <p class="text-xs text-gray-500 mt-1">Ej: Nou Barris</p>
+
+        <div class="section-title">Identidad del Distrito</div>
+        <div class="data-card bg-gray-50">
+            <p class="text-xs font-semibold text-gray-800">"El balcón verde de Barcelona"</p>
+            <p class="text-[10px] text-gray-600 mt-1">Distrito con mayor desnivel y contacto con la sierra de Collserola. Tradición obrera y familiar.</p>
+        </div>
+
+        <div class="section-title">Servicios Administrativos</div>
+        <div class="data-card border-l-4 border-gray-400 relative">
+            <a href="https://ajuntament.barcelona.cat/noubarris/" target="_blank" class="absolute top-2 right-2 text-[8px] text-gray-500 hover:underline">🔗 Sede</a>
+            <p class="text-sm font-semibold text-gray-800">Sede del Distrito (OAC)</p>
+            <p class="text-xs text-gray-600 mt-1">Plaça Major de Nou Barris, 1. (Para empadronamiento y trámites).</p>
+        </div>
+    </div>
+
+    <!-- NIVEL 3: BARRIO -->
+    <div class="panel">
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">🏘️ Nivel 3: Barrio</h2>
+        <p class="text-xs text-gray-500 mt-1">Ej: Torre Baró</p>
+
+        <div class="section-title">Equipamientos Clave</div>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <div class="bg-blue-50 p-2 rounded border border-blue-100">
+                <p class="text-[10px] text-blue-600 font-bold uppercase">CAP (Salud)</p>
+                <p class="text-[11px] font-bold text-blue-900 mt-0.5">CAP Ciutat Meridiana (a 1.2km)</p>
+            </div>
+            <div class="bg-blue-50 p-2 rounded border border-blue-100">
+                <p class="text-[10px] text-blue-600 font-bold uppercase">Educación</p>
+                <p class="text-[11px] font-bold text-blue-900 mt-0.5">Institut Escola Trinitat Nova</p>
+            </div>
+        </div>
+
+        <div class="section-title">Dinámica del Barrio</div>
+        <div class="data-card border-l-4 border-yellow-500">
+            <p class="font-bold text-sm text-gray-800">Tendencia de Precios</p>
+            <p class="text-lg font-black text-yellow-600">Subiendo (Gentrificación)</p>
+            <p class="text-[10px] text-gray-500 mt-1">Debido a su entorno natural, cada vez más familias buscan mudarse aquí huyendo del centro.</p>
+        </div>
+
+        <div class="section-title">Geografía</div>
+        <div class="data-card bg-emerald-50 border border-emerald-100">
+            <p class="text-xs font-semibold text-emerald-800 flex items-center gap-1"><span>🏔️</span> Topografía Escarpada</p>
+            <p class="text-[10px] text-emerald-700 mt-1">Muchas calles con fuertes pendientes o escaleras. Ojo si hay problemas de movilidad reducida.</p>
+        </div>
+    </div>
+
+    <!-- NIVEL 4: SECCIÓN CENSAL -->
+    <div class="panel">
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">📍 Nivel 4: Entorno (El Vecindario)</h2>
+        <p class="text-xs text-gray-500 mt-1">¿Qué tal es vivir en estas manzanas?</p>
+
+        <div class="section-title">Mercado de Alquiler</div>
+        <div class="data-card border-l-4 border-blue-400 relative">
+            <a href="https://habitatge.gencat.cat/ca/dades/estadistiques_publicacions/incasol/mercat_lloguer_fiances/" target="_blank" class="absolute top-2 right-2 text-[8px] text-blue-500 hover:underline">🔗 Fuente Incasòl</a>
+            <p class="font-bold text-sm text-gray-800">Alquiler Promedio (Ejemplo)</p>
+            <p class="text-xl font-black text-blue-600">680 € <span class="text-xs text-gray-500 font-normal">/ mes</span></p>
+            <p class="text-[10px] text-gray-500 mt-1">Precio real basado en fianzas depositadas en este sector.</p>
+        </div>
+
+        <div class="section-title">Radiografía Demográfica</div>
+        <div class="data-card bg-indigo-50 border border-indigo-100 relative mb-3">
+            <a href="https://www.ine.es/experimental/atlas/exp_atlas_tab.htm" target="_blank" class="absolute top-2 right-2 text-[8px] text-indigo-500 hover:underline">🔗 Atlas INE</a>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                    <p class="text-[10px] text-indigo-600 font-bold uppercase">Renta Neta / Pers</p>
+                    <p class="text-sm font-bold text-indigo-900">10.500 € <span class="text-[8px] font-normal">(Ej)</span></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-indigo-600 font-bold uppercase">Perfil Vecinal</p>
+                    <p class="text-sm font-bold text-indigo-900">Familiar <span class="text-[8px] font-normal">(Ej)</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">Seguridad y Convivencia</div>
+        <div class="data-card border-l-4 border-green-400 relative">
+            <a href="https://opendata-ajuntament.barcelona.cat/data/es/dataset/fets-penals-coneguts" target="_blank" class="absolute top-2 right-2 text-[8px] text-green-600 hover:underline">🔗 OpenData BCN</a>
+            <p class="font-bold text-sm text-gray-800">Nivel de Incidencias (Ejemplo)</p>
+            <p class="text-lg font-black text-green-600">Tranquilo (Bajo)</p>
+            <p class="text-[10px] text-gray-500 mt-1">Basado en llamadas al 112 y delitos conocidos (GUB/Mossos).</p>
+        </div>
+
+        <div class="section-title">Movilidad y Servicios</div>
+        <div class="data-card bg-white border border-gray-200 relative">
+            <a href="https://geoportal.barcelona.cat/planolbcn/" target="_blank" class="absolute top-2 right-2 text-[8px] text-gray-500 hover:underline">🔗 Plànol BCN</a>
+            <ul class="text-[10px] text-gray-700 space-y-2 mt-2">
+                <li class="flex items-center gap-2"><span>🚌</span> <strong>Bus:</strong> 3 líneas a menos de 200m (Ej)</li>
+                <li class="flex items-center gap-2"><span>🚇</span> <strong>Tren:</strong> Torre Baró | Vallbona (5 min)</li>
+                <li class="flex items-center gap-2"><span>🌳</span> <strong>Zonas Verdes:</strong> Acceso a Collserola (Ej)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- NIVEL 5: FINCA -->
+    <div class="panel">
+        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">🏠 Nivel 5: La Finca</h2>
+        <p class="text-xs text-gray-500 mt-1">Avinguda d'Escolapi Càncer 54B, 3º 2ª</p>
+
+        <!-- GRUPO 1: DATOS OFICIALES PÚBLICOS (CONTRASTABLES) -->
+        <div class="mt-4 mb-2">
+            <span class="bg-gray-800 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">Datos Oficiales (Contrastables)</span>
+        </div>
+
+        <!-- IDENTIFICACIÓN CATASTRAL -->
+        <!-- CLAUDE INSTRUCTION: Los datos de Parcela (14 caracteres) e Inmueble (20 caracteres) son la llave maestra. El Backend debe proporcionarlos mapeando la dirección contra la API del Catastro. Ambos son necesarios para inyectarlos en los Deep Links de Gencat/Ajuntament. -->
+        <div class="flex justify-between items-end mt-2 mb-1">
+            <div class="section-title !mt-0 !mb-0">Datos Registrales</div>
+            <a href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCBusqueda.aspx" target="_blank" class="text-[9px] font-semibold text-blue-600 hover:underline flex items-center gap-1" title="Ir al buscador oficial">🔗 Buscar en Catastro</a>
+        </div>
+        <div class="data-card bg-white shadow-sm border-l-4 border-blue-500">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <p class="text-[10px] text-gray-400 font-mono flex items-center gap-2">
+                        PARCELA (14): 14003A1DF3910A 
+                        <button class="text-gray-300 hover:text-blue-500 transition cursor-pointer" title="Copiar Parcela (14 car.)">📋</button>
+                    </p>
+                    <p class="text-[10px] text-gray-700 font-mono flex items-center gap-2 mt-0.5">
+                        INMUEBLE (20): 14003A1DF3910A0001BU
+                        <button class="text-gray-300 hover:text-blue-500 transition cursor-pointer" title="Copiar Inmueble (20 car.)">📋</button>
+                    </p>
+                </div>
+                <span class="bg-blue-100 text-blue-800 text-[9px] font-bold px-2 py-0.5 rounded">Residencial</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-2">
+                <div>
+                    <p class="text-[10px] text-gray-500">Año Constr.</p>
+                    <p class="text-sm font-bold">1953 <span class="text-[9px] font-normal text-red-500">(>50 años)</span></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500">Superficie Total</p>
+                    <p class="text-sm font-bold">132 m²</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                <div>
+                    <p class="text-[10px] text-gray-500">Sup. Útil Est.</p>
+                    <p class="text-sm font-bold">112 m²</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500">Coef. Participación</p>
+                    <p class="text-sm font-bold">4,15%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AFECTACIONES URBANÍSTICAS -->
+        <!-- CLAUDE INSTRUCTION: La clave PGM y el plan se consultan a través de la API/WMS del Portal de Información Urbanística (PIU) del Ayuntamiento. El enlace directo en el <a> debe inyectar la Parcela (14 caracteres). -->
+        <div class="flex justify-between items-end mt-4 mb-1">
+            <div class="section-title !mt-0 !mb-0">Urbanismo (PIU)</div>
+            <a href="https://ajuntament.barcelona.cat/informaciourbanistica/cerca/es/fitxa/14003A1DF3910A/--/--/pa/" target="_blank" class="text-[9px] font-semibold text-blue-600 hover:underline flex items-center gap-1">🔗 Ficha PIU BCN</a>
+        </div>
+        <div class="data-card border-l-4 border-red-500 bg-red-50 relative">
+            <p class="font-bold text-sm text-red-800">Clave PGM: 16/18</p>
+            <p class="text-[10px] text-red-700 mt-1 font-semibold">Plan: B080513 (MPGM Torre Baró)</p>
+            <p class="text-[10px] text-red-700 mt-1">Zona en sòl urbà de reordenació volumètrica. Posible afectación en parcela.</p>
+        </div>
+
+        <!-- ESTADO DE LA EDIFICACIÓN -->
+        <!-- CLAUDE INSTRUCTION: Para Cédula y CEE, si el Backend logra cruzar el Open Data de Gencat, inyecta las fechas y letras aquí. El enlace externo <a> SIEMPRE debe ser funcional para que el usuario pueda validarlo a mano usando la ref. de 20 caracteres. -->
+        <div class="flex justify-between items-end mt-4 mb-1">
+            <div class="section-title !mt-0 !mb-0">Cumplimiento</div>
+        </div>
+        <div class="grid gap-2 mb-3">
+            <!-- CÉDULA -->
+            <div class="bg-white border border-gray-200 p-2 rounded flex justify-between items-center shadow-sm relative">
+                <a href="https://agenciahabitatge.gencat.cat/es/temas/rehabilitacion-y-calidad-de-la-edificacion/control-de-calidad-de-la-vivienda/buscador-de-cedulas" target="_blank" class="absolute top-2 right-2 text-[8px] text-blue-500 hover:underline">🔗 Buscador Cédula</a>
+                <div class="mt-1">
+                    <p class="text-[10px] font-bold text-gray-700">Cédula Habitabilidad</p>
+                    <p class="text-[9px] text-gray-500">Usa ref. Inmueble (20 car.)</p>
+                </div>
+                <div class="text-right mt-1 mr-12">
+                    <span class="text-[10px] font-bold text-green-600 bg-green-100 px-2 py-1 rounded" title="CHB06869714001">Vigente</span>
+                    <p class="text-[9px] text-gray-400 mt-1">Hasta: 18-12-2029</p>
+                </div>
+            </div>
+
+            <!-- CEE -->
+            <div class="bg-white border border-gray-200 p-2 rounded flex justify-between items-center shadow-sm relative">
+                <a href="https://certificacioenergetica.gencat.cat/icaen-visor/AppJava/views/portada.xhtml" target="_blank" class="absolute top-2 right-2 text-[8px] text-blue-500 hover:underline">🔗 Buscador CEE</a>
+                <div class="mt-1">
+                    <p class="text-[10px] font-bold text-gray-700">Cert. Energético (CEE)</p>
+                    <p class="text-[9px] text-gray-500">Usa ref. Inmueble (20 car.)</p>
+                </div>
+                <div class="text-right mt-1 mr-14">
+                    <span class="text-[11px] font-black text-white bg-yellow-500 px-2 py-1 rounded">E</span>
+                    <p class="text-[9px] text-gray-400 mt-1">Válido 10 años</p>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-6 border-gray-200">
+
+        <!-- GRUPO 2: DATOS PRIVADOS Y DUE DILIGENCE -->
+        <div class="mb-2">
+            <span class="bg-indigo-800 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">Privado / A Solicitar al Propietario</span>
+        </div>
+
+        <!-- FISCALIDAD Y GASTOS -->
+        <!-- CLAUDE INSTRUCTION: Los gastos estimados pueden ser calculados por el Backend según promedios del distrito/m2, o introducidos a mano por el vendedor. Si son calculados, añadir un disclaimer. -->
+        <div class="section-title mt-4 mb-1">Gastos Ordinarios (Estimados)</div>
+        <div class="data-card bg-white shadow-sm border-l-4 border-indigo-200">
+            <div class="flex justify-between border-b pb-1 mb-1">
+                <span class="text-xs text-gray-600">IBI (Anual)</span>
+                <span class="text-xs font-bold text-gray-800">~ 420 €</span>
+            </div>
+            <div class="flex justify-between border-b pb-1 mb-1">
+                <span class="text-xs text-gray-600">Comunidad (Mes)</span>
+                <span class="text-xs font-bold text-gray-800">65 €</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">Tasa Basuras (Anual)</span>
+                <span class="text-xs font-bold text-gray-800">~ 85 €</span>
+            </div>
+        </div>
+
+        <!-- CHECKLIST DEL COMPRADOR -->
+        <!-- CLAUDE INSTRUCTION: Toda esta sección de Checklist y Enlaces de Interés es estática (texto duro). Su valor es puramente didáctico y UX. No requiere llamadas a la API, salvo inyectar variables en la URL de los enlaces de interés si fuera posible. -->
+        <div class="section-title mt-4 mb-1">Checklist del Comprador (Papeles a Pedir al Propietario)</div>
+        <p class="text-[10px] text-gray-600 mb-3">Solicita esta documentación para conocer el estado real de la propiedad antes de firmar arras o ir a Notaría:</p>
+        <div class="space-y-2">
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm relative">
+                <a href="https://sede.registradores.org/site/propiedad" target="_blank" class="absolute top-2 right-2 text-[9px] text-blue-500 hover:underline">🔗 Solicitar online</a>
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>📄</span> 1. Nota Simple (Registro de la Propiedad)</p>
+                <p class="text-[9px] text-gray-600 mt-0.5 w-10/12">Indispensable para comprobar titularidad real, hipotecas vigentes, embargos o usufructos.</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm">
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>🏗️</span> 2. ITE y Certificado de Aptitud</p>
+                <p class="text-[9px] text-gray-600 mt-0.5">Obligatorio si tiene >45 años. Te salva de heredar vicios estructurales y derramas millonarias. Si no lo tiene, deberás exonerarle en notaría bajo tu propio riesgo.</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm">
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>📜</span> 3. Cédula y Certificado Energético (CEE)</p>
+                <p class="text-[9px] text-gray-600 mt-0.5">La Cédula garantiza que cumple mínimos de habitabilidad. Ambos son obligatorios para el contrato de arras y notaría.</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm">
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>🏛️</span> 4. Certificado de Deudas de la Comunidad</p>
+                <p class="text-[9px] text-gray-600 mt-0.5">Emitido por el Administrador. Garantiza que no compras deudas ocultas ni derramas ya aprobadas pendientes de pago (Art. 9 LPH).</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm">
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>🧾</span> 5. Último recibo del IBI y Basuras</p>
+                <p class="text-[9px] text-gray-600 mt-0.5">Asegura que los impuestos municipales están al día. El año en curso suele prorratearse entre comprador y vendedor.</p>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 p-2 rounded shadow-sm relative">
+                <a href="https://www.edistribucion.com/" target="_blank" class="absolute top-2 right-2 text-[9px] text-blue-500 hover:underline">🔗 Info CIE</a>
+                <p class="font-bold text-[11px] text-gray-800 flex items-center gap-1"><span>⚡</span> 6. Últimas Facturas Suministros (Luz, Agua, Gas)</p>
+                <p class="text-[9px] text-gray-600 mt-0.5 w-10/12">Evita sorpresas de cortes. Ojo: si la luz lleva de baja meses, Endesa exigirá un nuevo Boletín Eléctrico (CIE) al dar de alta.</p>
+            </div>
+        </div>
+
+        <hr class="my-6 border-gray-200">
+
+        <!-- ENLACES DE INTERÉS -->
+        <div class="mb-2">
+            <span class="bg-gray-800 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">Enlaces de Interés de la Finca</span>
+        </div>
+        <div class="space-y-2 mt-3 mb-6">
+            <a href="https://agenciahabitatge.gencat.cat/indexlloguer/" target="_blank" class="block bg-white border border-gray-200 p-2 rounded shadow-sm hover:border-blue-300 hover:bg-blue-50 transition">
+                <p class="font-bold text-[11px] text-blue-600 flex items-center gap-1"><span>📈</span> Índice de Referencia de Alquiler 🔗</p>
+                <p class="text-[9px] text-gray-500 mt-0.5">Consulta el tope legal de la renta para esta dirección (Ley de Vivienda).</p>
+            </a>
+            <a href="https://meet.barcelona.cat/habitatgesturistics/es" target="_blank" class="block bg-white border border-gray-200 p-2 rounded shadow-sm hover:border-blue-300 hover:bg-blue-50 transition">
+                <p class="font-bold text-[11px] text-blue-600 flex items-center gap-1"><span>🧳</span> Buscador de Licencias Turísticas 🔗</p>
+                <p class="text-[9px] text-gray-500 mt-0.5">Comprueba si la vivienda cuenta con licencia de uso turístico (HUTB).</p>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
