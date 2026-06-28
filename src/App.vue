@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { fetchFinca } from './services/catastro.js'
@@ -26,6 +26,23 @@ const fincaData = ref({
   nInmuebles: null,
   plantas: null,
 })
+
+// Coordenadas del último clic, para la miniatura satélite de la parcela
+const clickedCoords = ref(null)
+
+// Miniatura satélite real (ortofoto ESRI) centrada en la parcela seleccionada
+const satelliteThumb = computed(() => {
+  if (!clickedCoords.value) return null
+  const { lat, lng } = clickedCoords.value
+  const d = 0.0006 // ~60 m de margen
+  const bbox = `${lng - d},${lat - d},${lng + d},${lat + d}`
+  return `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=4326&size=160,160&format=jpg&f=image`
+})
+
+// Antigüedad del edificio en años
+const antiguedad = computed(() =>
+  fincaData.value.ano ? new Date().getFullYear() - fincaData.value.ano : null
+)
 
 let map = null
 let searchMarker = null
@@ -480,6 +497,7 @@ onMounted(() => {
     if (map.getZoom() >= 16) {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
+      clickedCoords.value = { lat, lng };
 
       // Movemos el pin o lo creamos
       if (searchMarker) {
@@ -635,10 +653,15 @@ onMounted(() => {
         <div v-else-if="mapContext.level === 'finca'" class="context-panel">
           <div v-if="selectedAddress" class="ficha-header">
             <div class="ficha-crumb">Barcelona · Catastro en vivo</div>
-            <h2 class="ficha-address">{{ selectedAddress }}</h2>
-            <div v-if="fincaData.refCatastral" class="ficha-ref">
-              <span class="ficha-ref-label">Ref. parcela</span>
-              <span class="ficha-ref-value">{{ fincaData.refCatastral }}</span>
+            <div class="ficha-head-row">
+              <div class="ficha-head-main">
+                <h2 class="ficha-address">{{ selectedAddress }}</h2>
+                <div v-if="fincaData.refCatastral" class="ficha-ref">
+                  <span class="ficha-ref-label">Ref. parcela</span>
+                  <span class="ficha-ref-value">{{ fincaData.refCatastral }}</span>
+                </div>
+              </div>
+              <img v-if="satelliteThumb" :src="satelliteThumb" class="ficha-thumb" alt="Vista satélite de la parcela" />
             </div>
           </div>
           <h2 class="address-title" v-else>📍 Explorador de fincas</h2>
@@ -663,10 +686,12 @@ onMounted(() => {
                 <div class="ficha-cell">
                   <span class="ficha-k">Año constr.</span>
                   <span class="ficha-v">{{ fincaData.ano ?? '—' }}</span>
+                  <span v-if="antiguedad" class="ficha-sub">{{ antiguedad }} años</span>
                 </div>
                 <div class="ficha-cell">
                   <span class="ficha-k">Superficie</span>
                   <span class="ficha-v"><template v-if="fincaData.superficie">{{ fincaData.superficie }}<small> m²</small></template><template v-else>—</template></span>
+                  <span v-if="fincaData.superficie" class="ficha-sub">{{ fincaData.nInmuebles > 1 ? 'unidad de ref.' : 'construida' }}</span>
                 </div>
                 <div class="ficha-cell">
                   <span class="ficha-k">Plantas</span>
@@ -675,6 +700,7 @@ onMounted(() => {
                 <div class="ficha-cell">
                   <span class="ficha-k">Inmuebles</span>
                   <span class="ficha-v">{{ fincaData.nInmuebles ?? '—' }}</span>
+                  <span v-if="fincaData.nInmuebles" class="ficha-sub">en la finca</span>
                 </div>
                 <div class="ficha-cell">
                   <span class="ficha-k">Uso princ.</span>
@@ -1080,6 +1106,12 @@ details.expandable summary {
   font: 600 22px/1.12 'Source Serif 4', Georgia, serif;
   letter-spacing: -.01em; color: #0E1726; margin: 0 0 12px;
 }
+.ficha-head-row { display: flex; gap: 14px; align-items: flex-start; }
+.ficha-head-main { flex: 1; min-width: 0; }
+.ficha-thumb {
+  width: 74px; height: 74px; flex: none; border-radius: 10px; object-fit: cover;
+  border: 1px solid #E7EAF0; background: #EEF0F4;
+}
 .ficha-ref { display: flex; align-items: center; gap: 8px; }
 .ficha-ref-label {
   font: 600 8px/1 'Inter', sans-serif; letter-spacing: .1em;
@@ -1118,6 +1150,7 @@ details.expandable summary {
 .ficha-v small { font-size: 11px; color: #9098A4; }
 .ficha-v-sm { font: 600 13px/1.1 'Inter', sans-serif; }
 .ficha-na { color: #B6BCC6; }
+.ficha-sub { font: 500 9px/1 'Inter', sans-serif; color: #B6BCC6; }
 
 .ficha-msg {
   font: 500 12px/1.5 'Inter', sans-serif; color: #7f8c8d;
