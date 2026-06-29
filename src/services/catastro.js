@@ -20,11 +20,14 @@ const num = (el, tag) => {
   const v = txt(el, tag);
   return v != null ? parseInt(v, 10) : null;
 };
-// El coeficiente de participación viene como fracción con coma ("0,041500") → porcentaje
+// El coeficiente de participación (cpt) del DGC ya viene en PORCENTAJE con coma
+// decimal: inmueble único = "100,000000" (100%), una unidad = "4,150000" (4,15%).
+// Verificado contra Consulta_DNPRC. Solo normalizamos la coma y acotamos a [0,100].
 const pctFromCpt = (v) => {
   if (!v) return null;
   const n = parseFloat(v.replace(',', '.'));
-  return Number.isFinite(n) ? Math.round(n * 100 * 100) / 100 : null;
+  if (!Number.isFinite(n)) return null;
+  return Math.round(Math.min(Math.max(n, 0), 100) * 100) / 100;
 };
 // Reconstruye el RC de 20 desde un nodo <rc>
 const rc20FromNode = (rcNode) => {
