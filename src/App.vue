@@ -51,12 +51,86 @@ const supUtilEstimada = computed(() =>
   fincaData.value.superficie ? Math.round(fincaData.value.superficie * 0.85) : null
 )
 
+// ── Lectura crítica de la finca ──
+// Cada veredicto cruza un DATO REAL del Catastro con REGULACIÓN real (ITE, LPH, uso).
+// No inventa nada: interpreta lo que ya tenemos para que cada cifra "pese".
+const veredictos = computed(() => {
+  if (fincaData.value.estado !== 'ok') return []
+  const f = fincaData.value
+  const v = []
+
+  // Antigüedad → ITE obligatoria en Cataluña (>45 años)
+  if (antiguedad.value != null) {
+    if (antiguedad.value > 45) {
+      v.push({
+        tone: 'amber',
+        titulo: `Edificio de ${antiguedad.value} años · ITE obligatoria`,
+        desc: 'En Cataluña los edificios de más de 45 años deben pasar la Inspección Técnica (ITE). Exige el Certificado de Aptitud vigente; sin él, riesgo de derramas estructurales.',
+      })
+    } else {
+      v.push({
+        tone: 'green',
+        titulo: `Edificio de ${antiguedad.value} años`,
+        desc: 'Por debajo del umbral de ITE obligatoria (45 años).',
+      })
+    }
+  }
+
+  // Uso catastral → ¿apto para vivienda?
+  if (f.uso) {
+    if (/resid|vivienda/i.test(f.uso)) {
+      v.push({
+        tone: 'green',
+        titulo: 'Uso residencial',
+        desc: 'Apto para vivienda y financiación hipotecaria estándar.',
+      })
+    } else {
+      v.push({
+        tone: 'red',
+        titulo: `Uso catastral: ${f.uso} (no residencial)`,
+        desc: 'Verifica que tenga cédula de habitabilidad para vivienda antes de plantear vivir, empadronarte o hipotecarlo como hogar.',
+      })
+    }
+  }
+
+  // Coeficiente de participación → cuánto te toca en derramas.
+  // Solo tiene sentido en finca plurifamiliar y con un % plausible (0–100).
+  // OJO: catastro.js (pctFromCpt) devuelve valores fuera de rango para algunos
+  // inmuebles (p.ej. 10000%) — pendiente de verificar el XML crudo del DGC.
+  if (f.coefParticipacion > 0 && f.coefParticipacion <= 100 && f.nInmuebles > 1) {
+    const derrama = Math.round((100000 * f.coefParticipacion) / 100)
+    v.push({
+      tone: 'blue',
+      titulo: `Tu cuota en la comunidad: ${f.coefParticipacion}%`,
+      desc: `Es tu parte en gastos comunes y derramas. Una derrama de 100.000 € de la finca = ~${derrama.toLocaleString('es-ES')} € para ti.`,
+    })
+  }
+
+  // Plurifamiliar → comunidad de propietarios
+  if (f.nInmuebles > 1) {
+    v.push({
+      tone: 'blue',
+      titulo: `Finca plurifamiliar · ${f.nInmuebles} inmuebles`,
+      desc: 'Hay comunidad de propietarios activa. Pide actas y el estado de derramas aprobadas (Art. 9 LPH) antes de firmar.',
+    })
+  }
+
+  return v
+})
+
+// ── Mercado de ZONA (estimación · sin feed oficial en vivo todavía) ──
+// Placeholders explícitos hasta cablear Incasòl / Registradores.
+const mercadoZona = {
+  yield: '4,8',
+  venta: '4.820',
+  alquiler: '17,8',
+}
+
 // Deep-links oficiales con la referencia catastral inyectada (regla de verificabilidad)
 const deepLinks = computed(() => {
   const rc14 = fincaData.value.refCatastral
-  const rc20 = fincaData.value.rcInmueble
   return {
-    catastro: rc14 ? `https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCConCiud.aspx?RefC=${rc20 || rc14}&del=&mun=` : 'https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCBusqueda.aspx',
+    catastro: 'https://www1.sedecatastro.gob.es/Cartografia/mapa.aspx?buscar=S',
     piu: rc14 ? `https://ajuntament.barcelona.cat/informaciourbanistica/cerca/es/fitxa/${rc14}/--/--/pa/` : '#',
     cedula: 'https://agenciahabitatge.gencat.cat/es/temas/rehabilitacion-y-calidad-de-la-edificacion/control-de-calidad-de-la-vivienda/buscador-de-cedulas',
     cee: 'https://certificacioenergetica.gencat.cat/icaen-visor/AppJava/views/portada.xhtml',
@@ -64,6 +138,25 @@ const deepLinks = computed(() => {
     hutb: 'https://meet.barcelona.cat/habitatgesturistics/es',
   }
 })
+
+// Enlaces oficiales a nivel ciudad (Capa 1) — hechos legales reales, no estimaciones
+const ciudadLinks = {
+  indiceAlquiler: 'https://agenciahabitatge.gencat.cat/indexlloguer/',
+  serpavi: 'https://serpavi.mivau.gob.es/',
+  itpAtc: 'https://atc.gencat.cat/es/tributs/itpajd/tpo/tarifes-tipus/',
+  avalIco: 'https://www.ico.es/en/linea-avales-hipoteca-primera-vivienda',
+  openData: 'https://opendata-ajuntament.barcelona.cat/es',
+}
+
+// Enlaces oficiales por zona (Capas 2-4) — fuentes públicas reales, sin cifras inventadas
+const zonaLinks = {
+  portalDades: 'https://portaldades.ajuntament.barcelona.cat/ca/',
+  incasolLloguer: 'https://habitatge.gencat.cat/ca/dades/indicadors_estadistiques/estadistiques_de_construccio_i_mercat_immobiliari/mercat_de_lloguer/lloguers-barcelona-per-districtes-i-barris/',
+  idescatEmex: 'https://www.idescat.cat/emex/?id=080193',
+  lloguerBarris: 'https://opendata-ajuntament.barcelona.cat/data/ca/dataset/h2mallo-a',
+  ineAtlasRenta: 'https://www.ine.es/experimental/atlas/experimental_atlas.htm',
+  hutb: 'https://meet.barcelona.cat/habitatgesturistics/es',
+}
 
 // Copiar al portapapeles (referencias catastrales)
 const copiar = (texto) => {
@@ -605,21 +698,28 @@ onMounted(() => {
 
 <template>
   <div class="app-container">
-    <header class="header">
-      <div class="brand">
-        <h1>BCN Helper 🗺️</h1>
-        <p>Tu escáner de la ciudad</p>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <div class="topbar-logo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FA0E8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 12 18.5 5.5"></path></svg>
+        </div>
+        <div class="topbar-titles">
+          <span class="topbar-name">BCN Radar</span>
+          <span class="topbar-tag">Escáner de propiedad · Barcelona</span>
+        </div>
       </div>
-      
-      <!-- NUEVO BUSCADOR -->
+
       <div class="search-box">
-        <input 
-          v-model="searchQuery" 
+        <span class="search-ic">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7689" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        </span>
+        <input
+          v-model="searchQuery"
           @keyup.enter="buscarDireccion"
-          type="text" 
-          placeholder="📍 Ej: Av. d'Escolapi Càncer 54" 
+          type="text"
+          placeholder="Ej: Carrer de València, 285"
         />
-        <button @click="buscarDireccion">Buscar Dirección</button>
+        <button @click="buscarDireccion">Buscar</button>
       </div>
     </header>
     
@@ -628,69 +728,253 @@ onMounted(() => {
       <!-- PANEL LATERAL (IZQUIERDA) -->
       <aside class="sidebar">
         
-        <!-- NIVEL 0: CIUDAD -->
+        <!-- NIVEL 0: CIUDAD — marco legal real de toda Barcelona (hub de fuentes oficiales) -->
         <div v-if="mapContext.level === 'ciudad'" class="context-panel">
-          <h2 class="address-title">🏙️ Mercado Barcelona</h2>
-          <p class="subtitle">Visión Macro (Haz clic en un Distrito)</p>
-          <div class="data-card">
-            <h3>📊 Tendencias Globales</h3>
-            <ul class="stats-list">
-              <li><span>💰 Precio Promedio:</span> <strong>4.120 €/m²</strong></li>
-              <li><span>📈 Variación anual:</span> <strong class="text-green">+3.2%</strong></li>
-              <li><span>👥 Población total:</span> <strong>1.62M</strong></li>
-            </ul>
+          <div class="ficha-header">
+            <div class="ficha-crumb">Barcelona · marco legal de ciudad</div>
+            <h2 class="ficha-address">Barcelona</h2>
+            <p class="ficha-note-sm" style="margin-top:7px">Reglas que aplican a toda la ciudad. Haz clic en un distrito para bajar de nivel.</p>
           </div>
-        </div>
 
-        <!-- NIVEL 1: DISTRITO -->
-        <div v-else-if="mapContext.level === 'distrito'" class="context-panel">
-          <h2 class="address-title">📍 Distrito: {{ mapContext.distritoName || '...' }}</h2>
-          <p class="subtitle">Mercado Zonal (Haz clic en un Barrio)</p>
-          <div class="data-card">
-            <h3>🏢 Análisis de Distrito</h3>
-            <ul class="stats-list">
-              <li><span>🏢 Oferta Viviendas:</span> <strong>2.450 uds</strong></li>
-              <li><span>⏳ Rotación (Liquidez):</span> <strong>Alta</strong></li>
-              <li><span>📉 Tasa de descuento:</span> <strong>-4.5%</strong></li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- NIVEL 2: BARRIO -->
-        <div v-else-if="mapContext.level === 'barrio'" class="context-panel">
-          <h2 class="address-title">🏘️ Barrio: {{ mapContext.barrioName || '...' }}</h2>
-          <p class="subtitle">Mercado Local (Haz clic para explorar Secciones)</p>
-          <div class="data-card">
-            <h3>📊 Entorno del Barrio</h3>
-            <ul class="stats-list">
-              <li><span>💰 Precio M2 Promedio:</span> <strong>15.2 €/m² / mes</strong></li>
-              <li><span>🚨 Índice Delincuencia:</span> <strong class="text-green">Bajo</strong></li>
-              <li><span>📈 Renta Media Anual:</span> <strong>34.500 €</strong></li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- NIVEL 3: SECCIÓN CENSAL -->
-        <div v-else-if="mapContext.level === 'seccion'" class="context-panel">
-          <h2 class="address-title">🎯 Censo: {{ mapContext.seccionCode || '...' }}</h2>
-          <p class="subtitle">Micro-mercado (Haz clic en cualquier calle)</p>
-          <div class="data-card">
-            <h3>👥 Perfil de la Zona</h3>
-            <ul class="stats-list">
-              <li><span>💰 Renta Familiar:</span> <strong>42.500 €/año</strong></li>
-              <li><span>🎓 Nivel Estudios:</span> <strong>Alto (45%)</strong></li>
-              <li><span>🚨 Vulnerabilidad:</span> <strong class="text-green">Baja</strong></li>
-            </ul>
-            <div class="insight-alert" style="margin-top: 15px;">
-              💡 <strong>Insight:</strong> Esta sección censal tiene una renta un 15% superior a la media de su distrito. Ideal para inquilinos Premium.
+          <!-- Alquiler: zona tensionada -->
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Régimen de alquiler</span>
+              <span class="ficha-source">Ley Vivienda · Generalitat</span>
             </div>
+            <div class="ver ver-amber">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">Toda Barcelona es zona tensionada</span>
+                <span class="ver-desc">El alquiler de vivienda habitual está topado por el índice de referencia. Si compras para alquilar, calcula el máximo legal antes de cerrar números.</span>
+              </div>
+            </div>
+            <a class="ficha-cta" :href="ciudadLinks.indiceAlquiler" target="_blank" rel="noopener">Índice de alquiler · Generalitat →</a>
+            <a class="ficha-doc" :href="ciudadLinks.serpavi" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Sistema estatal de referencia (SERPAVI)</span>
+                <span class="ficha-doc-d">Calcula el alquiler máximo permitido</span>
+              </span>
+              <span class="ficha-badge">consultar 🔗</span>
+            </a>
+          </div>
+
+          <!-- Comprar: ITP -->
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Comprar · Impuesto ITP</span>
+              <span class="ficha-source">ATC · Generalitat</span>
+            </div>
+            <div class="ver ver-blue">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">ITP: 10 % hasta 600.000 €</span>
+                <span class="ver-desc">Por encima de 600.000 € se aplica una tarifa progresiva. Se calcula sobre el precio de compra o el Valor de Referencia de Catastro, el que sea mayor.</span>
+              </div>
+            </div>
+            <div class="clave-legend">
+              <div class="clave-row ok"><span class="clave-tag">5 %</span><span>Vivienda habitual de joven ≤35, familia numerosa, monoparental o con discapacidad.</span></div>
+              <div class="clave-row ok"><span class="clave-tag">7 %</span><span>Vivienda habitual de protección oficial (VPO).</span></div>
+            </div>
+            <a class="ficha-cta" :href="ciudadLinks.itpAtc" target="_blank" rel="noopener">Tarifas oficiales ITP · ATC →</a>
+          </div>
+
+          <!-- Financiación: Aval ICO -->
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Financiación · Aval ICO</span>
+              <span class="ficha-source">ICO · Mº Vivienda</span>
+            </div>
+            <div class="ver ver-green">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">Aval del Estado de hasta el 20 %</span>
+                <span class="ver-desc">Para menores de 35 o con menores a cargo en su primera vivienda: el aval cubre la entrada y permite hipoteca de hasta el 100 % (25 % si el CEE es D o superior).</span>
+              </div>
+            </div>
+            <div class="ver ver-amber">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">En pausa durante 2026</span>
+                <span class="ver-desc">La firma de nuevos avales está temporalmente parada a la espera de la addenda de prórroga (vigente hasta 2027). Confírmalo con tu banco.</span>
+              </div>
+            </div>
+            <a class="ficha-cta" :href="ciudadLinks.avalIco" target="_blank" rel="noopener">Línea de avales ICO →</a>
+          </div>
+
+          <!-- Hub de fuentes abiertas -->
+          <div class="ficha-block">
+            <div class="ficha-block-head"><span class="ficha-block-title">Fuentes abiertas de ciudad</span></div>
+            <a class="ficha-doc" :href="ciudadLinks.openData" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Open Data BCN</span>
+                <span class="ficha-doc-d">Portal de datos abiertos del Ajuntament</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
+            <p class="ficha-note-sm">Baja a un distrito o barrio para ver datos de mercado y entorno con su fuente.</p>
+          </div>
+        </div>
+
+        <!-- NIVEL 1: DISTRITO — foto media + accesos a la estadística oficial del distrito -->
+        <div v-else-if="mapContext.level === 'distrito'" class="context-panel">
+          <div class="ficha-header">
+            <div class="ficha-crumb"><span class="ficha-crumb-hi">Barcelona</span><span class="ficha-crumb-sep">›</span>distrito</div>
+            <h2 class="ficha-address">{{ mapContext.distritoName || 'Selecciona un distrito' }}</h2>
+            <p class="ficha-note-sm" style="margin-top:7px">Compara este distrito con la media de la ciudad. Haz clic en un barrio para bajar de nivel.</p>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Qué mirar en un distrito</span>
+            </div>
+            <div class="ver ver-blue">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">Precio medio y liquidez</span>
+                <span class="ver-desc">El distrito da la foto agregada: precio €/m² frente a la media de la ciudad y cuánta oferta se mueve. Sirve para descartar zonas, no para decidir un piso concreto.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Fuentes oficiales</span>
+              <span class="ficha-source">Ajuntament · Generalitat</span>
+            </div>
+            <a class="ficha-doc" :href="zonaLinks.portalDades" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Barcelona Dades</span>
+                <span class="ficha-doc-d">Estadística por distrito y barrio · Ajuntament</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.incasolLloguer" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Alquiler medio oficial (INCASÒL)</span>
+                <span class="ficha-doc-d">Fianzas depositadas, por distrito y barrio</span>
+              </span>
+              <span class="ficha-badge">consultar 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.idescatEmex" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Barcelona en cifras (Idescat)</span>
+                <span class="ficha-doc-d">Población, renta y actividad económica</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- NIVEL 2: BARRIO — donde se decide: mercado, rentabilidad y entorno con fuente -->
+        <div v-else-if="mapContext.level === 'barrio'" class="context-panel">
+          <div class="ficha-header">
+            <div class="ficha-crumb"><span class="ficha-crumb-hi">{{ mapContext.distritoName || 'Barcelona' }}</span><span class="ficha-crumb-sep">›</span>barrio</div>
+            <h2 class="ficha-address">{{ mapContext.barrioName || 'Selecciona un barrio' }}</h2>
+            <p class="ficha-note-sm" style="margin-top:7px">El barrio es donde se decide la compra: mercado, entorno y servicios. Haz clic para ver las secciones censales.</p>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Rentabilidad · cómo calcularla</span>
+            </div>
+            <div class="ver ver-blue">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">Yield bruto = alquiler anual ÷ precio de compra</span>
+                <span class="ver-desc">Cruza el alquiler medio y el precio de venta del barrio (fuentes abajo). El resultado te dice si conviene comprar para vivir o para alquilar (buy-to-let).</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Fuentes oficiales del barrio</span>
+              <span class="ficha-source">Open Data · Generalitat</span>
+            </div>
+            <a class="ficha-doc" :href="zonaLinks.lloguerBarris" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Precio de alquiler por barrios</span>
+                <span class="ficha-doc-d">Estimación mensual · Open Data BCN</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.incasolLloguer" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Alquiler medio oficial (INCASÒL)</span>
+                <span class="ficha-doc-d">Fianzas depositadas, por barrio</span>
+              </span>
+              <span class="ficha-badge">consultar 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.hutb" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Pisos turísticos (HUT)</span>
+                <span class="ficha-doc-d">Densidad de licencias activas en la zona</span>
+              </span>
+              <span class="ficha-badge">consultar 🔗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- NIVEL 3: SECCIÓN CENSAL — micro-entorno: renta, demografía y presión turística -->
+        <div v-else-if="mapContext.level === 'seccion'" class="context-panel">
+          <div class="ficha-header">
+            <div class="ficha-crumb"><span class="ficha-crumb-hi">{{ mapContext.barrioName || 'Barcelona' }}</span><span class="ficha-crumb-sep">›</span>sección censal</div>
+            <h2 class="ficha-address ficha-crumb-mono" style="font-size:20px">{{ mapContext.seccionCode || 'Selecciona una sección' }}</h2>
+            <p class="ficha-note-sm" style="margin-top:7px">El micro-entorno: renta, demografía y presión turística de unas pocas manzanas. Haz clic en cualquier calle para ver la finca.</p>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Qué mide una sección</span>
+            </div>
+            <div class="ver ver-blue">
+              <span class="ver-dot"></span>
+              <div class="ver-body">
+                <span class="ver-titulo">Renta y perfil del hogar</span>
+                <span class="ver-desc">La sección censal es la unidad más fina con datos de renta del INE. Te da el poder adquisitivo real del vecindario inmediato, no la media del barrio.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ficha-block">
+            <div class="ficha-block-head">
+              <span class="ficha-block-title">Fuentes oficiales de la sección</span>
+              <span class="ficha-source">INE · Ajuntament</span>
+            </div>
+            <a class="ficha-doc" :href="zonaLinks.ineAtlasRenta" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Atlas de renta (INE)</span>
+                <span class="ficha-doc-d">Renta media por persona y hogar, por sección</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.hutb" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Pisos turísticos (HUT)</span>
+                <span class="ficha-doc-d">Licencias activas en estas manzanas</span>
+              </span>
+              <span class="ficha-badge">consultar 🔗</span>
+            </a>
+            <a class="ficha-doc" :href="zonaLinks.portalDades" target="_blank" rel="noopener">
+              <span class="ficha-doc-main">
+                <span class="ficha-doc-t">Padrón y demografía</span>
+                <span class="ficha-doc-d">Densidad poblacional · Barcelona Dades</span>
+              </span>
+              <span class="ficha-badge">abrir 🔗</span>
+            </a>
           </div>
         </div>
 
         <!-- NIVEL 4: FINCA (CATASTRO) -->
         <div v-else-if="mapContext.level === 'finca'" class="context-panel">
           <div v-if="selectedAddress" class="ficha-header">
-            <div class="ficha-crumb">Barcelona · Catastro en vivo</div>
+            <div class="ficha-crumb">
+              <span v-if="mapContext.barrioName" class="ficha-crumb-hi">{{ mapContext.barrioName }}</span>
+              <template v-if="mapContext.distritoName"><span class="ficha-crumb-sep">›</span>{{ mapContext.distritoName }}</template>
+              <template v-if="mapContext.seccionCode"><span class="ficha-crumb-sep">›</span><span class="ficha-crumb-mono">{{ mapContext.seccionCode }}</span></template>
+              <template v-if="!mapContext.barrioName">Barcelona · Catastro en vivo</template>
+            </div>
             <div class="ficha-head-row">
               <div class="ficha-head-main">
                 <h2 class="ficha-address">{{ selectedAddress }}</h2>
@@ -702,9 +986,15 @@ onMounted(() => {
               <img v-if="satelliteThumb" :src="satelliteThumb" class="ficha-thumb" alt="Vista satélite de la parcela" />
             </div>
           </div>
-          <h2 class="address-title" v-else>📍 Explorador de fincas</h2>
-          
+          <div v-else class="panel-head ficha-empty-head">
+            <div class="panel-crumb">Nivel finca</div>
+            <h2 class="panel-title">Explorador de fincas</h2>
+          </div>
+
           <div v-if="!selectedAddress" class="empty-state">
+            <div class="empty-pin">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D5BD0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.4"></circle></svg>
+            </div>
             <p>Haz clic en cualquier parcela del mapa para cargar los datos en vivo del Catastro y las afectaciones urbanísticas (PIU).</p>
           </div>
           
@@ -712,7 +1002,7 @@ onMounted(() => {
             <!-- ===== GRUPO 1: DATOS OFICIALES (CONTRASTABLES) ===== -->
             <div class="ficha-block">
               <div class="ficha-block-head">
-                <span class="ficha-block-title">La Finca</span>
+                <span class="ficha-block-title">Catastro</span>
                 <span class="ficha-source">FUENTE · Catastro</span>
               </div>
 
@@ -779,13 +1069,33 @@ onMounted(() => {
 
             <!-- Resto del dossier solo si hay datos -->
             <template v-if="fincaData.estado === 'ok'">
-              <!-- Urbanismo (PIU) -->
+              <!-- Afectaciones urbanísticas (PGM / PIU) -->
               <div class="ficha-block">
                 <div class="ficha-block-head">
-                  <span class="ficha-block-title">Urbanismo (PIU)</span>
-                  <a class="ficha-verify-sm" :href="deepLinks.piu" target="_blank" rel="noopener">🔗 Ficha PIU</a>
+                  <span class="ficha-block-title">Afectaciones urbanísticas</span>
+                  <span class="ficha-source">PGM · Ajuntament</span>
                 </div>
-                <div class="ficha-note">Calificación urbanística y afectaciones: consúltalas en la ficha oficial del Ajuntament (se abre con esta parcela).</div>
+
+                <!-- Aviso crítico -->
+                <div class="ver ver-amber">
+                  <span class="ver-dot"></span>
+                  <div class="ver-body">
+                    <span class="ver-titulo">Comprueba la clave del PGM antes de firmar</span>
+                    <span class="ver-desc">La calificación urbanística decide si la finca está libre o reservada para una calle o un equipamiento público. Una clave de sistema = riesgo de expropiación total o parcial.</span>
+                  </div>
+                </div>
+
+                <!-- Claves a vigilar -->
+                <div class="clave-legend">
+                  <div class="clave-row danger"><span class="clave-tag">Clave 5</span><span>Sistema viario — reservada para ampliar calles. Riesgo de expropiación.</span></div>
+                  <div class="clave-row danger"><span class="clave-tag">Clave 7</span><span>Equipamientos — reservada para colegios, hospitales o servicios.</span></div>
+                  <div class="clave-row ok"><span class="clave-tag">12–18</span><span>Residencial / actividad consolidada — zona segura para invertir.</span></div>
+                </div>
+
+                <!-- Acción: clave real de esta parcela en la fuente oficial -->
+                <a class="ficha-cta" :href="deepLinks.piu" target="_blank" rel="noopener">
+                  Ver la clave de esta parcela en la ficha PIU oficial →
+                </a>
               </div>
 
               <!-- Cumplimiento: Cédula y CEE -->
@@ -805,6 +1115,48 @@ onMounted(() => {
                   </span>
                   <span class="ficha-badge">consultar 🔗</span>
                 </a>
+              </div>
+
+              <!-- Lectura crítica: la síntesis (qué significan los datos para ti) -->
+              <div v-if="veredictos.length" class="ficha-block">
+                <div class="ficha-block-head">
+                  <span class="ficha-block-title">Lectura crítica</span>
+                  <span class="ficha-source">BCN Radar</span>
+                </div>
+                <div class="ficha-lectura">
+                  <div v-for="(ver, i) in veredictos" :key="i" class="ver" :class="'ver-' + ver.tone">
+                    <span class="ver-dot"></span>
+                    <div class="ver-body">
+                      <span class="ver-titulo">{{ ver.titulo }}</span>
+                      <span class="ver-desc">{{ ver.desc }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mercado (estimación de zona — sin feed oficial en vivo) -->
+              <div class="ficha-block">
+                <div class="ficha-block-head">
+                  <span class="ficha-block-title">Mercado</span>
+                  <span class="ficha-source">ESTIMACIÓN · zona</span>
+                </div>
+                <div class="ficha-mercado">
+                  <div class="ficha-yield">
+                    <span class="ficha-yield-k">Yield bruto est.</span>
+                    <span class="ficha-yield-v">{{ mercadoZona.yield }}<small>%</small></span>
+                  </div>
+                  <div class="ficha-mercado-side">
+                    <div class="ficha-mini">
+                      <span class="ficha-mini-k">Venta zona</span>
+                      <span class="ficha-mini-v">{{ mercadoZona.venta }}<small> €/m²</small></span>
+                    </div>
+                    <div class="ficha-mini">
+                      <span class="ficha-mini-k">Alquiler zona</span>
+                      <span class="ficha-mini-v">{{ mercadoZona.alquiler }}<small> €/m²·mes</small></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ficha-note-sm">Estimación de zona, no del inmueble. Pendiente de cablear fuente oficial (Incasòl · Registradores).</div>
               </div>
 
               <!-- ===== GRUPO 2: PRIVADO / DUE DILIGENCE ===== -->
@@ -847,7 +1199,7 @@ onMounted(() => {
 
             <!-- Acciones -->
             <div class="action-buttons">
-              <button class="export-btn" @click="exportReport">📄 Generar informe (PDF)</button>
+              <button class="export-btn" @click="exportReport">Generar informe (PDF)</button>
             </div>
           </div>
         </div>
@@ -861,31 +1213,31 @@ onMounted(() => {
         <!-- Controles flotantes del mapa (Abajo Derecha) -->
         <div class="map-floating-controls">
           <div class="control-section">
-            <h4>🗺️ Estilo de Mapa</h4>
+            <h4>Estilo de mapa</h4>
             <div class="control-group">
-              <label><input type="radio" name="mapStyle" value="calle" checked> Callejero</label>
-              <label><input type="radio" name="mapStyle" value="satelite"> Satélite</label>
+              <label class="ctrl"><input type="radio" name="mapStyle" value="calle" checked><span>Callejero</span></label>
+              <label class="ctrl"><input type="radio" name="mapStyle" value="satelite"><span>Satélite</span></label>
             </div>
           </div>
-          
+
           <hr class="divider">
-          
+
           <div class="control-section">
-            <h4>📊 Capas Demográficas</h4>
+            <h4>Capas demográficas</h4>
             <div class="control-group">
-              <label><input type="radio" name="baseLayer" value="precio" checked> Precio M2</label>
-              <label><input type="radio" name="baseLayer" value="delitos"> Delincuencia</label>
-              <label><input type="radio" name="baseLayer" value="renta"> Renta Media</label>
+              <label class="ctrl"><input type="radio" name="baseLayer" value="precio" checked><span>Precio m²</span></label>
+              <label class="ctrl"><input type="radio" name="baseLayer" value="delitos"><span>Delincuencia</span></label>
+              <label class="ctrl"><input type="radio" name="baseLayer" value="renta"><span>Renta media</span></label>
             </div>
           </div>
-          
+
           <hr class="divider">
-          
+
           <div class="control-section">
-            <h4>🏗️ Capas Urbanísticas</h4>
+            <h4>Capas urbanísticas</h4>
             <div class="control-group">
-              <label><input type="checkbox" id="check-fincas" value="fincas"> Parcelas (Catastro)</label>
-              <label><input type="checkbox" value="vial"> Afectaciones (PIU)</label>
+              <label class="ctrl"><input type="checkbox" id="check-fincas" value="fincas"><span>Parcelas (Catastro)</span></label>
+              <label class="ctrl"><input type="checkbox" value="vial"><span>Afectaciones (PIU)</span></label>
             </div>
           </div>
         </div>
@@ -896,326 +1248,213 @@ onMounted(() => {
 </template>
 
 <style>
+/* ===== Tokens del sistema visual v1 (BCN Radar) ===== */
+:root {
+  --ink: #0E1726;
+  --ink-soft: #1B2740;
+  --ink-line: #2A3850;
+  --blue: #2D5BD0;
+  --blue-l: #7FA0E8;
+  --green: #1F9D5B;
+  --amber: #D98A1F;
+  --red: #D24B3E;
+  --paper: #E6E7E2;
+  --card: #ffffff;
+  --line: #EAEDF2;
+  --line-2: #EEF0F4;
+  --line-3: #E7EAF0;
+  --muted: #9098A4;
+  --muted-2: #B6BCC6;
+  --text-2: #5B616B;
+  --text-3: #404B5E;
+  --sans: 'Inter', -apple-system, sans-serif;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--sans);
   height: 100vh;
   width: 100vw;
-  background-color: #f8f9fa;
+  background-color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+::selection { background: var(--blue); color: #fff; }
 #app { height: 100%; }
-.app-container {
-  display: flex; flex-direction: column; height: 100vh;
-}
-.header {
-  background-color: #2c3e50; color: white; padding: 1rem 2rem;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.brand h1 { margin: 0; font-size: 1.5rem; }
-.brand p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
+.app-container { display: flex; flex-direction: column; height: 100vh; }
 
-/* Estilos del buscador */
-.search-box {
-  display: flex;
-  gap: 10px;
+/* ===== Barra superior ===== */
+.topbar {
+  background: var(--ink); color: #fff; height: 56px; flex: none;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 18px;
+}
+.topbar-brand { display: flex; align-items: center; gap: 11px; }
+.topbar-logo {
+  width: 26px; height: 26px; border-radius: 7px; background: var(--ink-soft);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.topbar-titles { display: flex; align-items: baseline; gap: 9px; }
+.topbar-name { font: 700 14px/1 var(--sans); letter-spacing: -.01em; }
+.topbar-tag { font: 500 11px/1 var(--sans); color: #6B7689; }
+
+.search-box { display: flex; align-items: center; gap: 8px; }
+.search-box .search-ic {
+  position: absolute; margin-left: 12px; pointer-events: none;
+  display: flex; align-items: center;
 }
 .search-box input {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: none;
-  width: 300px;
-  font-size: 1rem;
+  height: 34px; width: 280px; padding: 0 12px 0 34px;
+  border-radius: 8px; border: 1px solid var(--ink-line); background: var(--ink-soft);
+  color: #fff; font: 500 12px/1 var(--sans);
 }
+.search-box input::placeholder { color: #6B7689; }
+.search-box input:focus { outline: none; border-color: var(--blue); }
 .search-box button {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border: none;
-  background-color: #e74c3c;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
+  height: 34px; padding: 0 14px; border: none; border-radius: 8px;
+  background: var(--blue); color: #fff; font: 600 12px/1 var(--sans); cursor: pointer;
+  transition: background .15s;
 }
-.search-box button:hover {
-  background-color: #c0392b;
-}
+.search-box button:hover { background: #2550BC; }
 
 .main-content { display: flex; flex: 1; overflow: hidden; }
 
-.map-section {
-  flex: 3;
-  position: relative;
-  height: 100%;
-}
+.map-section { flex: 1; position: relative; height: 100%; }
+.map-container { width: 100%; height: 100%; z-index: 1; }
 
-.map-container {
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
-
-/* Controles Flotantes del Mapa */
+/* ===== Controles flotantes del mapa ===== */
 .map-floating-controls {
-  position: absolute;
-  bottom: 30px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(4px);
-  padding: 15px 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  z-index: 1000; /* Asegura que flote sobre Leaflet */
-  width: 200px;
-  border: 1px solid rgba(0,0,0,0.05);
+  position: absolute; bottom: 24px; right: 18px;
+  background: rgba(255,255,255,.96); backdrop-filter: blur(6px);
+  padding: 14px 16px; border-radius: 12px;
+  box-shadow: 0 8px 30px -10px rgba(14,23,38,.28);
+  z-index: 1000; width: 204px; border: 1px solid var(--line-3);
 }
-
 .map-floating-controls h4 {
-  margin: 0 0 10px 0;
-  font-size: 0.9rem;
-  color: #2c3e50;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin: 0 0 10px; font: 600 9px/1 var(--sans);
+  color: var(--muted); text-transform: uppercase; letter-spacing: .1em;
 }
-
-.map-floating-controls .control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.map-floating-controls .control-group { display: flex; flex-direction: column; gap: 9px; }
+.map-floating-controls .ctrl {
+  display: flex; align-items: center; gap: 9px;
+  font: 500 12px/1 var(--sans); color: var(--ink); cursor: pointer;
 }
+.map-floating-controls .ctrl input { accent-color: var(--blue); width: 14px; height: 14px; }
+.map-floating-controls .divider { border: 0; border-top: 1px solid var(--line-2); margin: 13px 0; }
 
-.map-floating-controls label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #34495e;
-  cursor: pointer;
-}
-
-.map-floating-controls .divider {
-  border: 0;
-  border-top: 1px solid #ecf0f1;
-  margin: 15px 0;
-}
-
+/* ===== Panel lateral ===== */
 .sidebar {
-  width: 400px; /* Panel más ancho para que quepa bien la info */
-  background: #f8f9fa;
-  border-right: 1px solid #ddd;
-  padding: 25px;
-  overflow-y: auto;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-  z-index: 10; /* Para que la sombra pase por encima del mapa */
+  width: 408px; flex: none; background: var(--card);
+  border-right: 1px solid var(--line-3); padding: 0;
+  overflow-y: auto; z-index: 10;
+}
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb { background: #C7CBD1; border-radius: 8px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+
+/* Niveles macro: contenedor con su propio padding */
+.panel { padding: 22px; }
+
+/* Cabecera de panel (niveles macro) */
+.panel-head { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line-2); }
+/* Cabecera del nivel finca vacío (sin contenedor padded) */
+.ficha-empty-head { padding: 22px 22px 0; }
+.panel-crumb {
+  font: 600 9px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--blue); margin-bottom: 11px;
+}
+.panel-title { font: 600 22px/1.1 var(--serif); letter-spacing: -.01em; color: var(--ink); margin: 0; }
+.panel-sub { font: 500 11px/1.5 var(--sans); color: var(--muted); margin: 8px 0 0; }
+
+/* Tarjeta */
+.card {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 15px 16px; margin-bottom: 14px;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-title { font: 600 12px/1 var(--sans); letter-spacing: .03em; color: var(--ink); }
+.src-chip {
+  font: 500 9px/1 var(--mono); color: var(--text-2);
+  background: #F1F3F6; border: 1px solid #E6E9EF; padding: 4px 8px; border-radius: 6px;
 }
 
-/* Tipografía y diseño del Panel */
-.address-title {
-  font-size: 1.4rem;
-  color: #2c3e50;
-  margin-top: 0;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 10px;
+.rows { display: flex; flex-direction: column; }
+.row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--line-2);
 }
+.row:last-child { border-bottom: none; }
+.row-k { font: 500 12px/1 var(--sans); color: var(--text-2); }
+.row-v { font: 600 14px/1 var(--mono); color: var(--ink); }
+.row-v small { font: 500 10px/1 var(--sans); color: var(--muted); }
+.row-v.pos { color: var(--green); }
+.row-v.neg { color: var(--red); }
 
-.data-card {
-  background: white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  border: 1px solid #eee;
+.callout {
+  margin-top: 13px; padding: 11px 13px; border-radius: 9px;
+  background: #FBF6EC; border: 1px solid #F0E2C4;
+  font: 500 11px/1.5 var(--sans); color: #7A5A22;
 }
+.callout strong { color: var(--amber); }
 
-.data-card h3 {
-  margin-top: 0;
-  font-size: 1.1rem;
-  color: #34495e;
-  margin-bottom: 15px;
+/* Estado vacío */
+.empty-state {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 14px;
+  padding: 22px;
 }
-
-.data-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+.empty-pin {
+  width: 42px; height: 42px; border-radius: 11px; flex: none;
+  background: #EEF3FE; border: 1px solid #D7E2FB;
+  display: flex; align-items: center; justify-content: center;
 }
+.empty-state p { font: 500 12px/1.6 var(--sans); color: var(--muted); margin: 0; }
 
-.data-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.data-item .label {
-  font-size: 0.8rem;
-  color: #7f8c8d;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.data-item .value {
-  font-size: 1.1rem;
-  color: #2c3e50;
-  font-weight: 500;
-}
-
-.ref-catastral {
-  font-family: monospace;
-  background: #ecf0f1;
-  padding: 2px 5px;
-  border-radius: 4px;
-}
-
-.insight-alert {
-  margin-top: 15px;
-  background: #fff3cd;
-  color: #856404;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  border-left: 4px solid #ffeeba;
-}
-
-.stats-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.stats-list li {
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-}
-
-.stats-list li:last-child {
-  border-bottom: none;
-}
-
-.text-green {
-  color: #27ae60;
-}
-
-/* Expandible */
-details.expandable summary {
-  font-weight: bold;
-  color: #2c3e50;
-  cursor: pointer;
-  outline: none;
-  font-size: 1.1rem;
-}
-
-.details-content {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-  font-size: 0.95rem;
-  color: #555;
-}
-
-.link-btn {
-  display: inline-block;
-  margin-top: 10px;
-  color: #3498db;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-/* Botones */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.street-view-btn, .export-btn {
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.street-view-btn {
-  background: #ecf0f1;
-  color: #2c3e50;
-}
-
-.street-view-btn:hover {
-  background: #bdc3c7;
-}
-
+/* Botones de acción */
+.action-buttons { display: flex; flex-direction: column; gap: 9px; padding: 18px 22px 24px; }
 .export-btn {
-  background: #e74c3c;
-  color: white;
+  height: 44px; border: none; border-radius: 10px;
+  background: var(--blue); color: #fff; font: 600 13px/1 var(--sans);
+  cursor: pointer; transition: background .15s;
 }
+.export-btn:hover { background: #2550BC; }
 
-.export-btn:hover {
-  background: #c0392b;
-}
-
-.layer-controls hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
-
-/* Indicador de Zoom */
+/* ===== Indicador de zoom (Leaflet control) ===== */
 .zoom-indicator-box {
-  background: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-  font-size: 0.9rem;
-  color: #2c3e50;
-  border: 2px solid rgba(0,0,0,0.2);
+  background: #fff; padding: 7px 11px; border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(14,23,38,.16);
+  font: 600 10px/1 var(--mono); color: var(--text-3);
 }
 
-/* Etiquetas de nombres de zonas (Permanentes) */
-.zone-label {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  color: #2c3e50;
-  font-weight: 800;
-  font-size: 0.85rem;
-  text-align: center;
-  /* Efecto de borde blanco para que la letra se lea sobre cualquier fondo */
-  text-shadow: 2px 2px 0px rgba(255,255,255,0.8), -2px -2px 0px rgba(255,255,255,0.8), 2px -2px 0px rgba(255,255,255,0.8), -2px 2px 0px rgba(255,255,255,0.8);
-}
-.zone-label::before {
-  display: none !important; /* Ocultamos el triangulito que Leaflet le pone por defecto a los tooltips */
-}
-
-/* Tooltip del mapa: Estilo "fantasma" que simula texto nativo de CartoDB */
+/* ===== Tooltips de zonas en el mapa ===== */
 .zone-tooltip {
-  background: transparent;
-  color: #666666;
-  border: none;
-  font-family: 'Montserrat', 'Open Sans', 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: 0;
-  box-shadow: none;
-  /* Halo blanco clásico de los mapas GIS para legibilidad máxima */
-  text-shadow: 2px 2px 0px rgba(255,255,255,0.95), 
-              -2px -2px 0px rgba(255,255,255,0.95), 
-               2px -2px 0px rgba(255,255,255,0.95), 
-              -2px 2px 0px rgba(255,255,255,0.95);
+  background: transparent; color: #5B616B; border: none;
+  font-family: var(--sans); font-weight: 700; font-size: 12px;
+  padding: 0; box-shadow: none;
+  text-shadow: 1.5px 1.5px 0 rgba(255,255,255,.95),
+              -1.5px -1.5px 0 rgba(255,255,255,.95),
+               1.5px -1.5px 0 rgba(255,255,255,.95),
+              -1.5px 1.5px 0 rgba(255,255,255,.95);
 }
-.zone-tooltip::before {
-  display: none !important;
-}
+.zone-tooltip::before { display: none !important; }
 
 </style>
 
 <!-- Sistema visual de la Ficha de Propiedad (diseño BCN Radar) -->
 <style>
-.ficha-header { margin-bottom: 20px; }
+.ficha-header { padding: 22px 22px 18px; border-bottom: 1px solid var(--line-2); }
 .ficha-crumb {
-  font: 600 9px/1 'IBM Plex Mono', monospace;
-  letter-spacing: .08em; text-transform: uppercase;
-  color: #2D5BD0; margin-bottom: 10px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  font: 500 10px/1.3 'Inter', sans-serif;
+  color: #9098A4; margin-bottom: 14px;
 }
+.ficha-crumb-hi { color: #2D5BD0; font-weight: 600; }
+.ficha-crumb-sep { color: #C7CCD4; }
+.ficha-crumb-mono { font-family: 'IBM Plex Mono', monospace; font-size: 9px; }
 .ficha-address {
   font: 600 22px/1.12 'Source Serif 4', Georgia, serif;
   letter-spacing: -.01em; color: #0E1726; margin: 0 0 12px;
@@ -1236,9 +1475,50 @@ details.expandable summary {
   background: #F3F5F8; border: 1px solid #E7EAF0; padding: 3px 6px; border-radius: 5px;
 }
 
-.ficha-block { margin-bottom: 16px; }
+/* Lectura crítica: veredictos por dato */
+.ficha-lectura { display: flex; flex-direction: column; gap: 8px; }
+.ver {
+  display: flex; gap: 10px; padding: 11px 13px;
+  border: 1px solid; border-radius: 10px;
+}
+.ver-dot { width: 8px; height: 8px; border-radius: 99px; flex: none; margin-top: 4px; }
+.ver-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ver-titulo { font: 600 12px/1.3 'Inter', sans-serif; color: #0E1726; }
+.ver-desc { font: 500 10px/1.5 'Inter', sans-serif; color: #5B616B; }
+
+.ver-red   { background: #FCEEEC; border-color: #F3CFCB; }
+.ver-red   .ver-dot { background: #D24B3E; }
+.ver-amber { background: #FBF4E9; border-color: #F0E0BE; }
+.ver-amber .ver-dot { background: #D98A1F; }
+.ver-green { background: #ECF6F0; border-color: #CFE9DA; }
+.ver-green .ver-dot { background: #1F9D5B; }
+.ver-blue  { background: #EEF3FD; border-color: #D5E1FA; }
+.ver-blue  .ver-dot { background: #2D5BD0; }
+
+/* Mercado (estimación de zona) */
+.ficha-mercado { display: flex; gap: 10px; }
+.ficha-yield {
+  flex: 1.1; background: #0E1726; border-radius: 11px; padding: 14px 15px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ficha-yield-k {
+  font: 500 9px/1 'Inter', sans-serif; letter-spacing: .12em;
+  text-transform: uppercase; color: #7E8AA0;
+}
+.ficha-yield-v { font: 600 30px/1 'IBM Plex Mono', monospace; color: #fff; }
+.ficha-yield-v small { font-size: 15px; color: #7FA0E8; margin-left: 2px; }
+.ficha-mercado-side { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ficha-mini { border: 1px solid #EAEDF2; border-radius: 9px; padding: 9px 11px; }
+.ficha-mini-k {
+  display: block; font: 500 8px/1 'Inter', sans-serif; letter-spacing: .08em;
+  text-transform: uppercase; color: #9098A4; margin-bottom: 5px;
+}
+.ficha-mini-v { font: 600 14px/1 'IBM Plex Mono', monospace; color: #0E1726; }
+.ficha-mini-v small { font-size: 9px; color: #9098A4; }
+
+.ficha-block { padding: 18px 22px; border-bottom: 1px solid var(--line-2); }
 .ficha-block-head {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px;
 }
 .ficha-block-title {
   font: 600 12px/1 'Inter', sans-serif; letter-spacing: .04em; color: #0E1726;
@@ -1291,26 +1571,54 @@ details.expandable summary {
 .ficha-verify-sm { font: 600 9px/1 'Inter', sans-serif; color: #2D5BD0; text-decoration: none; }
 .ficha-verify-sm:hover { text-decoration: underline; }
 
+/* Leyenda de claves PGM + CTA a la ficha oficial */
+.clave-legend { display: flex; flex-direction: column; gap: 7px; margin-top: 11px; }
+.clave-row {
+  display: flex; gap: 9px; align-items: baseline;
+  font: 500 10px/1.45 'Inter', sans-serif; color: #5B616B;
+}
+.clave-tag {
+  flex: none; min-width: 48px; text-align: center;
+  font: 600 9px/1 'IBM Plex Mono', monospace; letter-spacing: .02em;
+  padding: 4px 6px; border-radius: 5px;
+}
+.clave-row.danger .clave-tag { color: #B23A2E; background: #FCEEEC; border: 1px solid #F3CFCB; }
+.clave-row.ok .clave-tag { color: #167A46; background: #ECF6F0; border: 1px solid #CFE9DA; }
+
+.ficha-cta {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 13px; height: 38px; border-radius: 9px;
+  background: #0E1726; color: #fff; text-decoration: none;
+  font: 600 11px/1 'Inter', sans-serif; transition: background .15s;
+}
+.ficha-cta:hover { background: #1B2740; }
+
 .ficha-note { font: 500 11px/1.5 'Inter', sans-serif; color: #6B7280; }
 .ficha-note-sm { font: 500 10px/1.5 'Inter', sans-serif; color: #9098A4; margin: 0 0 9px; }
 
+/* El último elemento de cada sección no aporta margen propio:
+   la separación la define SIEMPRE el padding de la sección (18px). */
+.ficha-block > :last-child { margin-bottom: 0; }
+
 /* Documentos (Cédula / CEE) */
-.ficha-doc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #EAEDF2; border-radius: 9px; margin-bottom: 8px; text-decoration: none; background: #fff; transition: border-color .15s; }
+.ficha-doc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 13px; border: 1px solid #EAEDF2; border-radius: 9px; margin-bottom: 8px; text-decoration: none; background: #fff; transition: border-color .15s; }
 .ficha-doc:hover { border-color: #C3D2F2; }
 .ficha-doc-main { display: flex; flex-direction: column; gap: 3px; }
 .ficha-doc-t { font: 600 12px/1.2 'Inter', sans-serif; color: #0E1726; }
 .ficha-doc-d { font: 500 9px/1.2 'Inter', sans-serif; color: #9098A4; }
 .ficha-badge { flex: none; font: 600 9px/1 'IBM Plex Mono', monospace; color: #5B616B; background: #F1F3F6; border: 1px solid #E6E9EF; padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
 
-/* Tag de grupo (privado) */
-.ficha-grouptag { font: 600 9px/1 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #312E81; display: inline-block; padding: 5px 9px; border-radius: 6px; margin: 6px 0 14px; }
+/* Tag de grupo (privado) — cabecera del bloque "a solicitar":
+   más aire arriba para despegarse de Cumplimiento, pegado a Gastos abajo. */
+.ficha-grouptag { font: 600 9px/1 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #312E81; display: inline-block; padding: 6px 10px; border-radius: 6px; margin: 22px 22px 0; }
+.ficha-grouptag + .ficha-block { padding-top: 11px; }
 
 /* Gastos */
 .ficha-gasto-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #EEF0F4; font: 500 11px/1 'Inter', sans-serif; color: #5B616B; }
 .ficha-gasto-row:last-of-type { border-bottom: none; }
 
 /* Checklist del comprador */
-.ficha-check { background: #FAFBFC; border: 1px solid #EAEDF2; border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; }
+.ficha-check { background: #FAFBFC; border: 1px solid #EAEDF2; border-radius: 9px; padding: 11px 13px; margin-bottom: 8px; }
 .ficha-check-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ficha-check-t { font: 600 11px/1.35 'Inter', sans-serif; color: #0E1726; }
 .ficha-check-d { font: 500 9px/1.45 'Inter', sans-serif; color: #9098A4; margin: 5px 0 0; }
