@@ -283,15 +283,6 @@ onMounted(() => {
     })
     map.addLayer({ id: 'catastro', type: 'raster', source: 'catastro', layout: { visibility: 'none' } })
 
-    // WMS PIU / AMB (planeamiento). Puede fallar por geobloqueo en algunos entornos.
-    map.addSource('piu', {
-      type: 'raster',
-      tiles: ['https://geoserveis.amb.cat/geoserver/wms?service=WMS&request=GetMap&version=1.1.1&layers=amb:planejament_vigent&styles=&format=image/png&transparent=true&srs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256'],
-      tileSize: 256,
-      attribution: 'Área Metropolitana de Barcelona / Ajuntament',
-    })
-    map.addLayer({ id: 'piu', type: 'raster', source: 'piu', paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } })
-
     // Edificios 3D: extrusión sobre la capa building del estilo vectorial
     try {
       map.addLayer({
@@ -327,12 +318,6 @@ onMounted(() => {
   document.getElementById('check-fincas').addEventListener('change', function (e) {
     if (map.getLayer('catastro')) map.setLayoutProperty('catastro', 'visibility', e.target.checked ? 'visible' : 'none')
     if (e.target.checked && map.getZoom() < 17) map.easeTo({ zoom: 17 })
-  })
-
-  // Encender/apagar afectaciones (PIU WMS)
-  document.querySelector('input[value="vial"]').addEventListener('change', function (e) {
-    if (map.getLayer('piu')) map.setLayoutProperty('piu', 'visibility', e.target.checked ? 'visible' : 'none')
-    if (e.target.checked && map.getZoom() < 16) map.easeTo({ zoom: 16 })
   })
 
   // Encender/apagar edificios 3D (inclina la cámara para que se aprecie el volumen)
@@ -965,7 +950,6 @@ onMounted(() => {
             <h4>Capas urbanísticas</h4>
             <div class="control-group">
               <label class="ctrl"><input type="checkbox" id="check-fincas" value="fincas"><span>Parcelas (Catastro)</span></label>
-              <label class="ctrl"><input type="checkbox" value="vial"><span>Afectaciones (PIU)</span></label>
             </div>
           </div>
 
