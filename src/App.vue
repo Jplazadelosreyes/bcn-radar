@@ -246,9 +246,23 @@ onMounted(() => {
     attributionControl: { compact: true },
   })
 
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left')
+  // Navegación completa: zoom, brújula (rotar/orientar) e inclinación 3D
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true, showZoom: true }), 'top-right')
+  // Pantalla completa
+  map.addControl(new maplibregl.FullscreenControl(), 'top-right')
+  // Geolocalización (mi ubicación, con rumbo)
+  map.addControl(new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: true,
+    showUserHeading: true,
+  }), 'top-right')
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
   map.addControl(new ZoomIndicatorControl(), 'top-left')
+
+  // Gestos 3D: arrastrar con botón derecho o Ctrl+arrastrar para rotar/inclinar
+  map.dragRotate.enable()
+  map.touchZoomRotate.enableRotation()
+  if (map.touchPitch) map.touchPitch.enable()
 
   map.on('load', () => {
     // Satélite de alta resolución (ESRI) como fuente raster
@@ -938,21 +952,10 @@ onMounted(() => {
         <!-- Controles flotantes del mapa (Abajo Derecha) -->
         <div class="map-floating-controls">
           <div class="control-section">
-            <h4>Estilo de mapa</h4>
+            <h4>Mapa base</h4>
             <div class="control-group">
               <label class="ctrl"><input type="radio" name="mapStyle" value="calle" checked><span>Callejero</span></label>
               <label class="ctrl"><input type="radio" name="mapStyle" value="satelite"><span>Satélite</span></label>
-            </div>
-          </div>
-
-          <hr class="divider">
-
-          <div class="control-section">
-            <h4>Capas demográficas</h4>
-            <div class="control-group">
-              <label class="ctrl"><input type="radio" name="baseLayer" value="precio" checked><span>Precio m²</span></label>
-              <label class="ctrl"><input type="radio" name="baseLayer" value="delitos"><span>Delincuencia</span></label>
-              <label class="ctrl"><input type="radio" name="baseLayer" value="renta"><span>Renta media</span></label>
             </div>
           </div>
 
@@ -969,10 +972,11 @@ onMounted(() => {
           <hr class="divider">
 
           <div class="control-section">
-            <h4>Vista</h4>
+            <h4>Vista 3D</h4>
             <div class="control-group">
               <label class="ctrl"><input type="checkbox" id="check-3d" value="3d"><span>Edificios 3D</span></label>
             </div>
+            <p class="ctrl-hint">Arrastra con clic derecho (o Ctrl+arrastrar) para rotar e inclinar.</p>
           </div>
         </div>
       </div>
@@ -1080,6 +1084,7 @@ html, body {
 }
 .map-floating-controls .ctrl input { accent-color: var(--blue); width: 14px; height: 14px; }
 .map-floating-controls .divider { border: 0; border-top: 1px solid var(--line-2); margin: 13px 0; }
+.map-floating-controls .ctrl-hint { font: 500 9px/1.4 'Inter', sans-serif; color: #9098A4; margin: 8px 0 0; }
 
 /* ===== Panel lateral ===== */
 .sidebar {
