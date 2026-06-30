@@ -10,6 +10,15 @@ const selectedAddress = ref(null)
 const selectedBarrio = ref(null)
 const measureTotal = ref(null) // distancia acumulada de la herramienta de medición
 
+// Capas de transporte (recorridos reales desde OpenStreetMap / Overpass)
+const TRANSPORTES = [
+  { key: 'metro',    label: 'Metro',           color: '#E2231A', filter: '["route"="subway"]' },
+  { key: 'rodalies', label: 'Rodalies / Renfe', color: '#1A8A4A', filter: '["route"="train"]' },
+  { key: 'bus',      label: 'Bus',             color: '#0067B1', filter: '["route"="bus"]' },
+  { key: 'tram',     label: 'FGC / Tranvía',   color: '#E87200', filter: '["route"~"tram|light_rail"]' },
+]
+const transportStatus = ref({}) // { metro: 'loading'|'ok'|'error', ... }
+
 // Estado Reactivo del Panel Lateral Dinámico
 const mapContext = ref({
   level: 'ciudad', // 'ciudad', 'distrito', 'barrio', 'seccion', 'finca'
@@ -322,6 +331,75 @@ onMounted(() => {
   if (checkMeasure) checkMeasure.addEventListener('change', (e) => setMeasuring(e.target.checked))
   const btnMeasureClear = document.getElementById('btn-measure-clear')
   if (btnMeasureClear) btnMeasureClear.addEventListener('click', () => clearMeasure())
+
+  // ── Capas de transporte (lazy-load desde Overpass al activar el toggle) ──
+  const TRANSPORT_BBOX = '41.27,2.00,41.50,2.30' // S,W,N,E (BCN + área cercana)
+  const OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  ]
+  // Prueba los mirrors en orden hasta obtener una respuesta válida (Overpass público suele saturarse)
+  async function overpassFetch(q) {
+    let lastErr
+    for (const url of OVERPASS_ENDPOINTS) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'data=' + encodeURIComponent(q),
+        })
+        if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue }
+        return await res.json()
+      } catch (e) { lastErr = e }
+    }
+    throw lastErr || new Error('Overpass sin respuesta')
+  }
+  async function loadTransport(cfg, visible) {
+    const srcId = `tr-${cfg.key}`
+    const layerId = `${srcId}-line`
+    if (map.getSource(srcId)) {
+      if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none')
+      return
+    }
+    if (!visible) return
+    transportStatus.value = { ...transportStatus.value, [cfg.key]: 'loading' }
+    try {
+      const q = `[out:json][timeout:90];(relation${cfg.filter}(${TRANSPORT_BBOX}););out geom;`
+      const data = await overpassFetch(q)
+      const features = (data.elements || [])
+        .filter(el => el.type === 'relation' && el.members)
+        .map(rel => {
+          const lines = rel.members
+            .filter(m => m.type === 'way' && m.geometry)
+            .map(m => m.geometry.map(g => [g.lon, g.lat]))
+          return {
+            type: 'Feature',
+            properties: { colour: rel.tags?.colour || null, ref: rel.tags?.ref || '', name: rel.tags?.name || '' },
+            geometry: { type: 'MultiLineString', coordinates: lines },
+          }
+        })
+        .filter(f => f.geometry.coordinates.length)
+      map.addSource(srcId, { type: 'geojson', data: { type: 'FeatureCollection', features } })
+      map.addLayer({
+        id: layerId, type: 'line', source: srcId,
+        layout: { 'line-join': 'round', 'line-cap': 'round', visibility: visible ? 'visible' : 'none' },
+        paint: {
+          'line-color': ['coalesce', ['get', 'colour'], cfg.color],
+          'line-width': cfg.key === 'bus' ? 1.2 : 3,
+          'line-opacity': cfg.key === 'bus' ? 0.55 : 0.85,
+        },
+      })
+      transportStatus.value = { ...transportStatus.value, [cfg.key]: 'ok' }
+    } catch (err) {
+      console.warn('Overpass transporte', cfg.key, err)
+      transportStatus.value = { ...transportStatus.value, [cfg.key]: 'error' }
+    }
+  }
+  TRANSPORTES.forEach(cfg => {
+    const el = document.getElementById(`tr-${cfg.key}`)
+    if (el) el.addEventListener('change', (e) => loadTransport(cfg, e.target.checked))
+  })
 
   map.on('load', () => {
     // Satélite de alta resolución (ESRI) como fuente raster
@@ -1024,6 +1102,22 @@ onMounted(() => {
           <hr class="divider">
 
           <div class="control-section">
+            <h4>Transporte</h4>
+            <div class="control-group">
+              <label v-for="t in TRANSPORTES" :key="t.key" class="ctrl">
+                <input type="checkbox" :id="'tr-' + t.key" :value="t.key">
+                <span class="tr-swatch" :style="{ background: t.color }"></span>
+                <span>{{ t.label }}</span>
+                <span v-if="transportStatus[t.key] === 'loading'" class="tr-status">cargando…</span>
+                <span v-else-if="transportStatus[t.key] === 'error'" class="tr-status tr-err">error</span>
+              </label>
+            </div>
+            <p class="ctrl-hint">Recorridos reales de OpenStreetMap. El bus son muchas líneas: puede tardar.</p>
+          </div>
+
+          <hr class="divider">
+
+          <div class="control-section">
             <h4>Capas urbanísticas</h4>
             <div class="control-group">
               <label class="ctrl"><input type="checkbox" id="check-fincas" value="fincas"><span>Parcelas (Catastro)</span></label>
@@ -1164,6 +1258,10 @@ html, body {
 .map-floating-controls .measure-total { font: 700 13px/1 'IBM Plex Mono', monospace; color: var(--blue); }
 .map-floating-controls .measure-clear { font: 600 9px/1 'Inter', sans-serif; color: #5B616B; background: #F1F3F6; border: 1px solid #E6E9EF; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
 .map-floating-controls .measure-clear:hover { background: #E6E9EF; }
+
+.map-floating-controls .tr-swatch { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.map-floating-controls .tr-status { font: 600 8px/1 'IBM Plex Mono', monospace; color: #9098A4; margin-left: auto; }
+.map-floating-controls .tr-status.tr-err { color: #D24B3E; }
 
 /* Rosa de los vientos */
 .compass-rose { cursor: pointer; padding: 2px; }
