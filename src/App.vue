@@ -8,6 +8,7 @@ import { fetchFinca } from './services/catastro.js'
 const searchQuery = ref('')
 const selectedAddress = ref(null)
 const selectedBarrio = ref(null)
+const measureTotal = ref(null) // distancia acumulada de la herramienta de medición
 
 // Estado Reactivo del Panel Lateral Dinámico
 const mapContext = ref({
@@ -229,6 +230,34 @@ class ZoomIndicatorControl {
   onRemove() { this._box.remove(); this._map = undefined }
 }
 
+// Rosa de los vientos: gira con la orientación; clic = volver al norte y aplanar
+class CompassRoseControl {
+  onAdd(m) {
+    this._map = m
+    this._box = document.createElement('div')
+    this._box.className = 'maplibregl-ctrl maplibregl-ctrl-group compass-rose'
+    this._box.title = 'Volver al norte'
+    this._box.innerHTML = `
+      <svg viewBox="0 0 48 48" width="40" height="40">
+        <g class="compass-dial">
+          <circle cx="24" cy="24" r="21" fill="#fff" stroke="#E6E9EF"/>
+          <polygon points="24,5 28,24 24,21 20,24" fill="#D24B3E"/>
+          <polygon points="24,43 20,24 24,27 28,24" fill="#8A93A3"/>
+          <text x="24" y="13" text-anchor="middle" font-size="8" font-weight="700" fill="#0E1726" font-family="Inter,sans-serif">N</text>
+          <text x="24" y="42" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">S</text>
+          <text x="42" y="26.5" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">E</text>
+          <text x="6" y="26.5" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">O</text>
+        </g>
+      </svg>`
+    this._dial = this._box.querySelector('.compass-dial')
+    this._box.addEventListener('click', () => m.easeTo({ bearing: 0, pitch: 0, duration: 500 }))
+    const rotate = () => { this._dial.style.transform = `rotate(${-m.getBearing()}deg)` }
+    m.on('rotate', rotate); rotate()
+    return this._box
+  }
+  onRemove() { this._box.remove(); this._map = undefined }
+}
+
 onMounted(() => {
   // Límites amplios (toda la provincia) para que nunca se vean bordes grises
   const bcnBounds = [[1.7000, 41.1000], [2.5000, 41.6000]] // [SW],[NE] en lng,lat
@@ -258,11 +287,41 @@ onMounted(() => {
   }), 'top-right')
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
   map.addControl(new ZoomIndicatorControl(), 'top-left')
+  map.addControl(new CompassRoseControl(), 'top-right')
 
   // Gestos 3D: arrastrar con botón derecho o Ctrl+arrastrar para rotar/inclinar
   map.dragRotate.enable()
   map.touchZoomRotate.enableRotation()
   if (map.touchPitch) map.touchPitch.enable()
+
+  // ── Herramienta de medición de distancias ──
+  let measuring = false
+  const measurePoints = []
+  const haversine = (a, b) => {
+    const R = 6371000, toRad = d => d * Math.PI / 180
+    const dLat = toRad(b[1] - a[1]), dLng = toRad(b[0] - a[0])
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[1])) * Math.cos(toRad(b[1])) * Math.sin(dLng / 2) ** 2
+    return 2 * R * Math.asin(Math.sqrt(h))
+  }
+  const renderMeasure = () => {
+    const feats = measurePoints.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p } }))
+    if (measurePoints.length >= 2) feats.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: measurePoints } })
+    const src = map.getSource('measure')
+    if (src) src.setData({ type: 'FeatureCollection', features: feats })
+    let total = 0
+    for (let i = 1; i < measurePoints.length; i++) total += haversine(measurePoints[i - 1], measurePoints[i])
+    measureTotal.value = measurePoints.length < 2 ? null : (total >= 1000 ? `${(total / 1000).toFixed(2)} km` : `${Math.round(total)} m`)
+  }
+  const clearMeasure = () => { measurePoints.length = 0; renderMeasure() }
+  const setMeasuring = (on) => {
+    measuring = on
+    map.getCanvas().style.cursor = on ? 'crosshair' : ''
+    if (!on) clearMeasure()
+  }
+  const checkMeasure = document.getElementById('check-measure')
+  if (checkMeasure) checkMeasure.addEventListener('change', (e) => setMeasuring(e.target.checked))
+  const btnMeasureClear = document.getElementById('btn-measure-clear')
+  if (btnMeasureClear) btnMeasureClear.addEventListener('click', () => clearMeasure())
 
   map.on('load', () => {
     // Satélite de alta resolución (ESRI) como fuente raster
@@ -270,6 +329,7 @@ onMounted(() => {
       type: 'raster',
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
       tileSize: 256,
+      maxzoom: 19, // ESRI no sirve tiles >19: MapLibre sobre-escala (borroso) en vez de dejar el hueco
       attribution: 'Tiles © Esri — World Imagery',
     })
     map.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } })
@@ -302,6 +362,17 @@ onMounted(() => {
     } catch (err) {
       console.warn('No se pudo añadir la capa 3D de edificios:', err)
     }
+
+    // Capa de medición de distancias
+    map.addSource('measure', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+    map.addLayer({
+      id: 'measure-line', type: 'line', source: 'measure', filter: ['==', '$type', 'LineString'],
+      paint: { 'line-color': '#2D5BD0', 'line-width': 2.5, 'line-dasharray': [2, 1] },
+    })
+    map.addLayer({
+      id: 'measure-points', type: 'circle', source: 'measure', filter: ['==', '$type', 'Point'],
+      paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-color': '#2D5BD0', 'circle-stroke-width': 2 },
+    })
 
     setDrillLevel(map.getZoom())
   })
@@ -344,6 +415,12 @@ onMounted(() => {
 
   // MAGIA INTERACTIVA: Seleccionar la finca/dirección con el ratón
   map.on('click', async function(e) {
+    // En modo medición el clic añade un vértice, no selecciona finca
+    if (measuring) {
+      measurePoints.push([e.lngLat.lng, e.lngLat.lat])
+      renderMeasure()
+      return
+    }
     // Solo permitimos clavar el pin si ya estamos a nivel de calle/finca (Zoom >= 16)
     if (map.getZoom() >= 16) {
       const lat = e.lngLat.lat;
@@ -962,6 +1039,20 @@ onMounted(() => {
             </div>
             <p class="ctrl-hint">Arrastra con clic derecho (o Ctrl+arrastrar) para rotar e inclinar.</p>
           </div>
+
+          <hr class="divider">
+
+          <div class="control-section">
+            <h4>Herramientas</h4>
+            <div class="control-group">
+              <label class="ctrl"><input type="checkbox" id="check-measure" value="measure"><span>Medir distancia</span></label>
+            </div>
+            <div v-if="measureTotal" class="measure-readout">
+              <span class="measure-total">{{ measureTotal }}</span>
+              <button id="btn-measure-clear" class="measure-clear" type="button">Limpiar</button>
+            </div>
+            <p class="ctrl-hint">Haz clic en el mapa para marcar puntos; la distancia se suma tramo a tramo.</p>
+          </div>
         </div>
       </div>
       
@@ -1069,6 +1160,14 @@ html, body {
 .map-floating-controls .ctrl input { accent-color: var(--blue); width: 14px; height: 14px; }
 .map-floating-controls .divider { border: 0; border-top: 1px solid var(--line-2); margin: 13px 0; }
 .map-floating-controls .ctrl-hint { font: 500 9px/1.4 'Inter', sans-serif; color: #9098A4; margin: 8px 0 0; }
+.map-floating-controls .measure-readout { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; }
+.map-floating-controls .measure-total { font: 700 13px/1 'IBM Plex Mono', monospace; color: var(--blue); }
+.map-floating-controls .measure-clear { font: 600 9px/1 'Inter', sans-serif; color: #5B616B; background: #F1F3F6; border: 1px solid #E6E9EF; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+.map-floating-controls .measure-clear:hover { background: #E6E9EF; }
+
+/* Rosa de los vientos */
+.compass-rose { cursor: pointer; padding: 2px; }
+.compass-rose .compass-dial { transform-origin: 24px 24px; transition: transform .1s linear; }
 
 /* ===== Panel lateral ===== */
 .sidebar {
