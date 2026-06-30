@@ -355,41 +355,84 @@ onMounted(() => {
     }
     throw lastErr || new Error('Overpass sin respuesta')
   }
+  const stopLayerIds = [] // capas de paradas (para no confundir su clic con seleccionar finca)
   async function loadTransport(cfg, visible) {
     const srcId = `tr-${cfg.key}`
-    const layerId = `${srcId}-line`
+    const modeLayers = [`${srcId}-line`, `${srcId}-stops`, `${srcId}-labels`]
     if (map.getSource(srcId)) {
-      if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none')
+      modeLayers.forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none') })
       return
     }
     if (!visible) return
     transportStatus.value = { ...transportStatus.value, [cfg.key]: 'loading' }
     try {
-      const q = `[out:json][timeout:90];(relation${cfg.filter}(${TRANSPORT_BBOX}););out geom;`
+      // Una sola consulta: relaciones (líneas) con geometría + sus nodos de parada con tags
+      const q = `[out:json][timeout:120];relation${cfg.filter}(${TRANSPORT_BBOX})->.routes;.routes out geom;node(r.routes);out;`
       const data = await overpassFetch(q)
-      const features = (data.elements || [])
+      const elements = data.elements || []
+
+      // Líneas + acumular qué líneas pasan por cada nodo-parada
+      const stopLines = {} // nodeId -> Set de etiquetas de línea
+      const lineFeatures = elements
         .filter(el => el.type === 'relation' && el.members)
         .map(rel => {
-          const lines = rel.members
-            .filter(m => m.type === 'way' && m.geometry)
-            .map(m => m.geometry.map(g => [g.lon, g.lat]))
-          return {
-            type: 'Feature',
-            properties: { colour: rel.tags?.colour || null, ref: rel.tags?.ref || '', name: rel.tags?.name || '' },
-            geometry: { type: 'MultiLineString', coordinates: lines },
-          }
+          const label = rel.tags?.ref || rel.tags?.name || ''
+          rel.members
+            .filter(m => m.type === 'node' && /stop|platform/.test(m.role || ''))
+            .forEach(m => { (stopLines[m.ref] ||= new Set()).add(label) })
+          const lines = rel.members.filter(m => m.type === 'way' && m.geometry).map(m => m.geometry.map(g => [g.lon, g.lat]))
+          return { type: 'Feature', properties: { colour: rel.tags?.colour || null }, geometry: { type: 'MultiLineString', coordinates: lines } }
         })
         .filter(f => f.geometry.coordinates.length)
-      map.addSource(srcId, { type: 'geojson', data: { type: 'FeatureCollection', features } })
+
+      // Paradas con nombre + líneas que pasan (deduplicadas por nombre, uniendo líneas)
+      const byName = {}
+      elements
+        .filter(el => el.type === 'node' && el.tags?.name)
+        .forEach(n => {
+          const lset = stopLines[n.id] ? [...stopLines[n.id]] : (n.tags.route_ref ? n.tags.route_ref.split(/[;,]/) : [])
+          if (!byName[n.tags.name]) byName[n.tags.name] = { coord: [n.lon, n.lat], lines: new Set() }
+          lset.map(l => l.trim()).filter(Boolean).forEach(l => byName[n.tags.name].lines.add(l))
+        })
+      const stopFeatures = Object.entries(byName).map(([name, o]) => ({
+        type: 'Feature',
+        properties: { name, lines: [...o.lines].sort().join(', '), modo: cfg.label },
+        geometry: { type: 'Point', coordinates: o.coord },
+      }))
+
+      map.addSource(srcId, { type: 'geojson', data: { type: 'FeatureCollection', features: lineFeatures } })
       map.addLayer({
-        id: layerId, type: 'line', source: srcId,
+        id: `${srcId}-line`, type: 'line', source: srcId,
         layout: { 'line-join': 'round', 'line-cap': 'round', visibility: visible ? 'visible' : 'none' },
-        paint: {
-          'line-color': ['coalesce', ['get', 'colour'], cfg.color],
-          'line-width': cfg.key === 'bus' ? 1.2 : 3,
-          'line-opacity': cfg.key === 'bus' ? 0.55 : 0.85,
-        },
+        paint: { 'line-color': ['coalesce', ['get', 'colour'], cfg.color], 'line-width': cfg.key === 'bus' ? 1.2 : 3, 'line-opacity': cfg.key === 'bus' ? 0.5 : 0.85 },
       })
+
+      map.addSource(`${srcId}-stops`, { type: 'geojson', data: { type: 'FeatureCollection', features: stopFeatures } })
+      map.addLayer({
+        id: `${srcId}-stops`, type: 'circle', source: `${srcId}-stops`,
+        minzoom: cfg.key === 'bus' ? 15 : 13,
+        layout: { visibility: visible ? 'visible' : 'none' },
+        paint: { 'circle-radius': cfg.key === 'bus' ? 3 : 4.5, 'circle-color': '#fff', 'circle-stroke-color': cfg.color, 'circle-stroke-width': 2 },
+      })
+      map.addLayer({
+        id: `${srcId}-labels`, type: 'symbol', source: `${srcId}-stops`,
+        minzoom: cfg.key === 'bus' ? 16 : 14,
+        layout: { visibility: visible ? 'visible' : 'none', 'text-field': ['get', 'name'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true },
+        paint: { 'text-color': '#1B2740', 'text-halo-color': '#fff', 'text-halo-width': 1.4 },
+      })
+      stopLayerIds.push(`${srcId}-stops`)
+
+      // Popup clickeable en la parada: nombre + líneas que pasan
+      map.on('click', `${srcId}-stops`, (e) => {
+        const p = e.features[0].properties
+        new maplibregl.Popup({ offset: 12 })
+          .setLngLat(e.lngLat)
+          .setHTML(`<b>${p.name}</b><br><span style="color:#5B616B">${p.modo}${p.lines ? ' · ' + p.lines : ''}</span>`)
+          .addTo(map)
+      })
+      map.on('mouseenter', `${srcId}-stops`, () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', `${srcId}-stops`, () => { map.getCanvas().style.cursor = '' })
+
       transportStatus.value = { ...transportStatus.value, [cfg.key]: 'ok' }
     } catch (err) {
       console.warn('Overpass transporte', cfg.key, err)
@@ -499,6 +542,9 @@ onMounted(() => {
       renderMeasure()
       return
     }
+    // Si el clic cae sobre una parada de transporte, deja que su popup lo maneje
+    const activeStopLayers = stopLayerIds.filter(id => map.getLayer(id))
+    if (activeStopLayers.length && map.queryRenderedFeatures(e.point, { layers: activeStopLayers }).length) return
     // Solo permitimos clavar el pin si ya estamos a nivel de calle/finca (Zoom >= 16)
     if (map.getZoom() >= 16) {
       const lat = e.lngLat.lat;
