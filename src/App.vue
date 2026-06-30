@@ -268,8 +268,8 @@ class CompassRoseControl {
 }
 
 onMounted(() => {
-  // Límites amplios (toda la provincia) para que nunca se vean bordes grises
-  const bcnBounds = [[1.7000, 41.1000], [2.5000, 41.6000]] // [SW],[NE] en lng,lat
+  // Límites ceñidos a la ciudad de Barcelona (no dejar salir hacia la provincia)
+  const bcnBounds = [[2.0300, 41.3000], [2.2600, 41.4800]] // [SW],[NE] en lng,lat
 
   // Motor MapLibre GL (open source) + basemap vectorial OpenFreeMap (sin API key)
   map = new maplibregl.Map({
@@ -463,6 +463,22 @@ onMounted(() => {
       attribution: 'Dirección General del Catastro',
     })
     map.addLayer({ id: 'catastro', type: 'raster', source: 'catastro', layout: { visibility: 'none' } })
+
+    // Máscara: atenúa todo lo que NO es el término municipal de Barcelona (foco visual)
+    fetch('https://raw.githubusercontent.com/martgnz/bcn-geodata/master/terme-municipal/terme-municipal.geojson')
+      .then(r => r.json())
+      .then(geo => {
+        const holes = []
+        for (const feat of geo.features) {
+          const g = feat.geometry
+          if (g.type === 'Polygon') holes.push(g.coordinates[0])
+          else if (g.type === 'MultiPolygon') g.coordinates.forEach(poly => holes.push(poly[0]))
+        }
+        const world = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]
+        map.addSource('bcn-mask', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [world, ...holes] } } })
+        map.addLayer({ id: 'bcn-mask', type: 'fill', source: 'bcn-mask', paint: { 'fill-color': '#0E1726', 'fill-opacity': 0.45 } })
+      })
+      .catch(err => console.warn('No se pudo cargar la máscara de Barcelona:', err))
 
     // Edificios 3D: extrusión sobre la capa building del estilo vectorial
     try {
