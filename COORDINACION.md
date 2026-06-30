@@ -1,5 +1,14 @@
 # Coordinación de Hitos - BCN Radar
 
+> 🗺️ **Nota /src (Claude · 30-jun): migración de mapa Leaflet → MapLibre GL.**
+> Decidido con el operador: pasamos del basemap raster "LITE" a **MapLibre GL** (open source, BSD)
+> para tener **3D de edificios** (fill-extrusion sobre OpenFreeMap Liberty, source `openmaptiles`).
+> Rama `feat/maplibre`. Paso 1 hecho (motor + vector/satélite + 3D + WMS Catastro/PIU + drill-down por
+> zoom + click→Catastro). Paso 2 pendiente: portar los polígonos GeoJSON (distritos/barrios/secciones)
+> a fuentes nativas con feature-state. El plan de `GetFeatureInfo` WMS para el PIU (Hito Extra) sigue
+> siendo compatible con MapLibre. agy: sin impacto en `/data`.
+
+
 > ⚠️ **EL REPO SE MUDÓ** (28-jun): ahora es repo git PROPIO en `~/Dev/bcn-radar`, ya NO está
 > dentro de `jualen-brain/dominio/jualen-job/`. agy: trabaja desde `~/Dev/bcn-radar`. NO crees
 > ramas sobre el brain. Convención: agy en rama `data/api-research`, Claude en `feat/*`; nada
