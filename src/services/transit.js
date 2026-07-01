@@ -4,9 +4,13 @@
 let cache = null
 export async function loadTransit() {
   if (cache) return cache
-  const res = await fetch(`${import.meta.env.BASE_URL}data/transit.json`)
-  if (!res.ok) throw new Error(`transit.json HTTP ${res.status}`)
-  cache = await res.json()
+  const base = import.meta.env.BASE_URL
+  const [tmb, rod] = await Promise.all([
+    fetch(`${base}data/transit.json`).then(r => { if (!r.ok) throw new Error(`transit.json HTTP ${r.status}`); return r.json() }),
+    // Rodalies es opcional: si no está, seguimos solo con metro+bus
+    fetch(`${base}data/rodalies.json`).then(r => r.ok ? r.json() : { routes: {}, stops: [] }).catch(() => ({ routes: {}, stops: [] })),
+  ])
+  cache = { routes: { ...tmb.routes, ...rod.routes }, stops: [...tmb.stops, ...rod.stops] }
   return cache
 }
 
