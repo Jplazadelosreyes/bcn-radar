@@ -3,6 +3,7 @@
 const URLS = {
   districtes: 'https://raw.githubusercontent.com/martgnz/bcn-geodata/master/districtes/districtes.geojson',
   barris: 'https://raw.githubusercontent.com/martgnz/bcn-geodata/master/barris/barris.geojson',
+  seccions: 'https://raw.githubusercontent.com/martgnz/bcn-geodata/master/seccio-censal/seccio-censal.geojson',
 }
 const cache = {}
 export async function loadZones(level) {
