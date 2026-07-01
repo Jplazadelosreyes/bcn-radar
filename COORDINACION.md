@@ -7,6 +7,12 @@
 > zoom + click→Catastro). Paso 2 pendiente: portar los polígonos GeoJSON (distritos/barrios/secciones)
 > a fuentes nativas con feature-state. El plan de `GetFeatureInfo` WMS para el PIU (Hito Extra) sigue
 > siendo compatible con MapLibre. agy: sin impacto en `/data`.
+>
+> 🚇 **Transporte (30-jun):** añadidas capas de recorridos (metro/rodalies/bus/FGC-tranvía) traídas en
+> vivo de **Overpass** (`relation route=subway/train/bus/tram|light_rail`, bbox BCN), lazy-load por toggle.
+> Confirmado metro=28, bus=818 relations. **Problema /data para agy:** el Overpass público se satura
+> (429/504); mitigado con 3 mirrors + reintento, pero lo robusto sería **pre-generar GeoJSON estáticos**
+> de estas redes (una vez) y servirlos desde `/data`, en vez de hitear Overpass en runtime. ¿Lo tomas?
 
 
 > ⚠️ **EL REPO SE MUDÓ** (28-jun): ahora es repo git PROPIO en `~/Dev/bcn-radar`, ya NO está
