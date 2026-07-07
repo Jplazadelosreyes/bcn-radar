@@ -1,22 +1,20 @@
 <script setup lang="ts">
 // Panel flotante "Eines" (abajo-derecha): mapa base · vista 3D · herramientas (medir · radio).
-// Basemap y 3D vienen del store useMapTools (sin props). Radio y medir aún son estado
-// compartido en App.vue → llegan por props/emits hasta que migren a store (deuda anotada).
+// Basemap/3D (useMapTools), radio (useRadio) y la finca (useFinca) vienen de sus stores.
+// Solo `measureTotal` llega por prop hasta que la medición migre a su store.
 import { useMapTools } from '../../composables/useMapTools.js'
 import { usePanels } from '../../composables/usePanels.js'
 import { useSheetDrag } from '../../composables/useSheetDrag.js'
+import { useRadio } from '../../composables/useRadio.js'
+import { useFinca } from '../../composables/useFinca.js'
 
-defineProps({
-  radioLabel: { type: String, default: '' },
-  clickedCoords: { type: Object, default: null },
-  measureTotal: { type: [String, Number], default: null },
-})
-const radioOn = defineModel('radioOn', { type: Boolean, default: false })
-const radioMetros = defineModel('radioMetros', { type: Number, default: 500 })
+defineProps<{ measureTotal?: string | number | null }>()
 
 const { basemap, edificios3d, relieve3d, setBasemap, toggleEdificios3d, toggleRelieve3d } = useMapTools()
 const { controlsOpen } = usePanels()
 const { start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag()
+const { radioOn, radioMetros, radioLabel } = useRadio()
+const { clickedCoords } = useFinca()
 </script>
 
 <template>
