@@ -21,6 +21,11 @@ const mapContext = ref({
   seccionCode: null,
 })
 
+// Capas cuyo clic abre un popup (overlays) o son paradas de transporte: el click-handler
+// del mapa las consulta para NO seleccionar finca encima. Las llenan los stores de capas.
+const overlayClickLayers = []
+const stopLayerIds = []
+
 export function useMapStore() {
-  return { map, mapContext }
+  return { map, mapContext, overlayClickLayers, stopLayerIds }
 }
