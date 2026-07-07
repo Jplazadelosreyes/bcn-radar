@@ -23,6 +23,7 @@ import MapFabs from './components/map/MapFabs.vue'
 import StopExplorer from './components/map/StopExplorer.vue'
 import MapControls from './components/map/MapControls.vue'
 import { useSheetDrag } from './composables/useSheetDrag.js'
+import SectionCard from './components/sidebar/SectionCard.vue'
 
 // Tema claro/oscuro (estado compartido en el composable). El chrome lo gestiona
 // useTheme; aquí recoloreamos el mapa (paleta completa día/noche) + la máscara.
@@ -1337,12 +1338,7 @@ onMounted(() => {
         <button class="panel-close" @click="sidebarOpen = false" title="Cerrar">✕</button>
 
         <!-- INFORMACIÓN — dossier contextual que sigue el nivel de zoom (ciudad→distrito→barrio→sección→finca) -->
-        <div class="capas-panel">
-          <button class="capas-head" @click="toggleCard('info')" :aria-expanded="!!cardOpen['info']">
-            <span class="capas-head-t"><span class="capas-ico">📍</span>Información <span class="capas-ctx">{{ infoCtx }}</span></span>
-            <span class="capas-chev" :class="{ open: !!cardOpen['info'] }">▾</span>
-          </button>
-          <div v-show="!!cardOpen['info']">
+        <SectionCard ico="📍" title="Información" :ctx="infoCtx" :open="!!cardOpen['info']" @toggle="toggleCard('info')">
           <!-- NIVEL 0: CIUDAD — marco legal real de toda Barcelona (hub de fuentes oficiales) -->
           <div v-if="mapContext.level === 'ciudad'" class="context-panel">
             <div class="ficha-header">
@@ -1880,16 +1876,10 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          </div>
-        </div>
+        </SectionCard>
 
         <!-- CAPAS PÚBLICAS — agregador WMS (persistente, sobre las fichas contextuales) -->
-        <div class="capas-panel">
-          <button class="capas-head" @click="toggleCard('capas')" :aria-expanded="!!cardOpen['capas']">
-            <span class="capas-head-t"><span class="capas-ico">🗂️</span>Capas del mapa</span>
-            <span class="capas-chev" :class="{ open: !!cardOpen['capas'] }">▾</span>
-          </button>
-          <div v-show="!!cardOpen['capas']" class="capas-body">
+        <SectionCard ico="🗂️" title="Capas del mapa" :open="!!cardOpen['capas']" body-class="capas-body" @toggle="toggleCard('capas')">
             <p class="capas-intro">Superpón capas oficiales sobre el mapa. Cada fuente enlaza a su portal para contrastar el dato.</p>
 
             <!-- Parcelas del Catastro — antes en el panel derecho; es una capa más del mapa -->
@@ -1935,16 +1925,10 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+        </SectionCard>
 
         <!-- MOVILIDAD Y SERVICIOS — capas de datos abiertos en vivo -->
-        <div class="capas-panel">
-          <button class="capas-head" @click="toggleCard('mov')" :aria-expanded="!!cardOpen['mov']">
-            <span class="capas-head-t"><span class="capas-ico">🚌</span>Movilidad y servicios</span>
-            <span class="capas-chev" :class="{ open: !!cardOpen['mov'] }">▾</span>
-          </button>
-          <div v-show="!!cardOpen['mov']" class="capas-body">
+        <SectionCard ico="🚌" title="Movilidad y servicios" :open="!!cardOpen['mov']" body-class="capas-body" @toggle="toggleCard('mov')">
             <p class="capas-intro">Datos abiertos oficiales, en vivo. Se cargan solo al activarlos.</p>
 
             <!-- Transporte público: explorador parada → línea → recorrido (GTFS TMB) -->
@@ -2014,16 +1998,10 @@ onMounted(() => {
               </label>
             </div>
             <p v-if="poiDate" class="capas-foot">🌍 Entorno vía OpenStreetMap · datos de {{ poiDate }}</p>
-          </div>
-        </div>
+        </SectionCard>
 
         <!-- ZONAS ADMINISTRATIVAS — límites de distritos y barrios -->
-        <div class="capas-panel">
-          <button class="capas-head" @click="toggleCard('zonas')" :aria-expanded="!!cardOpen['zonas']">
-            <span class="capas-head-t"><span class="capas-ico">🗺️</span>Zonas administrativas</span>
-            <span class="capas-chev" :class="{ open: !!cardOpen['zonas'] }">▾</span>
-          </button>
-          <div v-show="!!cardOpen['zonas']" class="capas-body">
+        <SectionCard ico="🗺️" title="Zonas administrativas" :open="!!cardOpen['zonas']" body-class="capas-body" @toggle="toggleCard('zonas')">
             <p class="capas-intro">Límites oficiales de Barcelona (Ajuntament · CartoBCN).</p>
             <label class="capas-layer">
               <input type="checkbox" :checked="!!zoneOn.districtes" @change="toggleZone('districtes')">
@@ -2066,8 +2044,7 @@ onMounted(() => {
                 <span v-if="rentaOn" class="renta-legend"><span class="renta-scale"></span><span>menos&nbsp;renta&nbsp;→&nbsp;más</span><span v-if="rentaAny" class="renta-any">· {{ rentaAny }}</span></span>
               </span>
             </label>
-          </div>
-        </div>
+        </SectionCard>
 
       </aside>
 
