@@ -4,26 +4,24 @@
 // compartido en App.vue → llegan por props/emits hasta que migren a store (deuda anotada).
 import { useMapTools } from '../../composables/useMapTools.js'
 import { usePanels } from '../../composables/usePanels.js'
+import { useSheetDrag } from '../../composables/useSheetDrag.js'
 
 defineProps({
   radioLabel: { type: String, default: '' },
   clickedCoords: { type: Object, default: null },
   measureTotal: { type: [String, Number], default: null },
-  // Handlers de arrastre del asa del sheet (compartidos; futuro composable useSheetDrag)
-  onSheetStart: { type: Function, default: () => {} },
-  onSheetMove: { type: Function, default: () => {} },
-  onSheetEnd: { type: Function, default: () => {} },
 })
 const radioOn = defineModel('radioOn', { type: Boolean, default: false })
 const radioMetros = defineModel('radioMetros', { type: Number, default: 500 })
 
 const { basemap, edificios3d, relieve3d, setBasemap, toggleEdificios3d, toggleRelieve3d } = useMapTools()
 const { controlsOpen } = usePanels()
+const { start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag()
 </script>
 
 <template>
   <div class="map-floating-controls" :class="{ open: controlsOpen }">
-    <button class="sheet-handle" @click="controlsOpen = false" @touchstart.passive="onSheetStart" @touchmove.passive="onSheetMove" @touchend="(e) => onSheetEnd(e, () => (controlsOpen = false))" title="Cerrar" aria-label="Cerrar panel"><span></span></button>
+    <button class="sheet-handle" @click="controlsOpen = false" @touchstart.passive="sheetTouchStart" @touchmove.passive="sheetTouchMove" @touchend="(e) => sheetTouchEnd(e, () => (controlsOpen = false))" title="Cerrar" aria-label="Cerrar panel"><span></span></button>
     <button class="panel-close" @click="controlsOpen = false" title="Cerrar">✕</button>
     <div class="control-section">
       <h4>Mapa base</h4>
