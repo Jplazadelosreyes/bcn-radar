@@ -3,113 +3,152 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 //  CÓMO PROBAR:
-//   1. Cambia cualquier valor hex en MAP_COLORS.day (mapa de día) o .night (noche).
-//   2. Guarda → el navegador recarga solo (Vite HMR) → cambia el tema con el botón ☀/☾.
-//   3. Ningún color queda afuera: cada capa del mapa está asignada a un "rol" (ver
-//      rolesFor() más abajo). Si un color no te cuadra, busca su rol por el nombre.
+//   1. Cambia cualquier hex en MAP_COLORS.day (día) o .night (noche).
+//   2. Guarda → el navegador recarga solo (Vite HMR) → cambia el tema con ☀/☾.
 //
-//  Además, MAP_OPTIONS controla la limpieza del mapa (paradas, comercios, 3D).
+//  TODO está mapeado y separado: cada clase de calle y CADA tipo de etiqueta (letras)
+//  tiene su propia línea. Ningún objeto usa un color por defecto.
 //  ───────────────────────────────────────────────────────────────────────────────
 
 export const MAP_COLORS = {
-  // ══════════════ ☀️  DÍA  ══════════════
+  // ══════════════════════════════ ☀️  DÍA  ══════════════════════════════
   day: {
-    // Fondo y agua
+    // ── Fondo y agua ──
     background:      '#F8F4F0',   // tierra / fondo general
-    water:          '#9EBDFF',   // mar, lagos, ríos (relleno)
-    waterway:       '#A0C8F0',   // cauces de río (línea)
-    // Verdes y usos de suelo
-    landPark:       '#D8E8C8',   // parques
-    landParkEdge:   '#E4F1D7',   // borde de parque
-    landWood:       '#CFE6BB',   // bosque
-    landGrass:      '#B0D59A',   // césped / pradera
-    landResidential:'#E7E3DD',   // suelo residencial (manzanas)
-    landSand:       '#F7EFC3',   // arena / playa
-    landIce:        '#E0ECEC',   // hielo
-    landPitch:      '#DEE3CD',   // canchas deportivas / pistas
-    landCemetery:   '#D3DDB7',   // cementerios
-    landHospital:   '#FFE0E6',   // hospitales
-    landSchool:     '#ECEECC',   // colegios
-    aeroway:        '#E9E6EA',   // aeropuerto (superficie)
-    aerowayLine:    '#D1D1D1',   // pistas / calles de rodaje
-    // Edificios (footprints 2D, tipo Google — grises visibles sobre el fondo beige)
-    building:       '#E3E4E7',   // edificios (relleno 2D)
-    buildingEdge:   '#CBCDD2',   // borde de edificio
-    building3D:     '#C2CBDB',   // edificios extruidos (solo si activas el 3D)
-    // Calles
-    roadMajor:      '#FCE7A0',   // vías principales (autopista/avenida) ← el "amarillo" de día
-    roadMajorCasing:'#E9AC77',   // contorno de vías principales
-    roadMinor:      '#FFFFFF',   // calles menores
-    roadMinorCasing:'#CFCDCA',   // contorno de calles menores
-    roadPath:       '#FFFFFF',   // sendas / peatonal
-    rail:           '#BBBBBB',   // ferrocarril / metro
-    boundary:       '#9E9CAB',   // límites administrativos
-    // Etiquetas (texto)
-    labelPlace:     '#333333',   // nombres de ciudad/pueblo/país
-    labelRoad:      '#4D4D4D',   // nombres de calle
-    labelWater:     '#4B6A9B',   // nombres de agua
-    labelPoi:       '#5B6670',   // nombres de comercios/POI
-    labelHalo:      '#FFFFFF',   // halo (borde) de todos los textos
+    water:           '#9EBDFF',   // mar, lagos (relleno)
+    waterway:        '#A0C8F0',   // cauces de río (línea)
+
+    // ── Verdes y usos de suelo ──
+    landPark:        '#D8E8C8',   // parques
+    landParkEdge:    '#E4F1D7',   // borde de parque
+    landWood:        '#CFE6BB',   // bosque
+    landGrass:       '#B0D59A',   // césped / pradera
+    landResidential: '#E7E3DD',   // suelo residencial (manzanas)
+    landSand:        '#F7EFC3',   // arena / playa
+    landIce:         '#E0ECEC',   // hielo
+    landPitch:       '#DEE3CD',   // canchas / pistas deportivas
+    landCemetery:    '#D3DDB7',   // cementerios
+    landHospital:    '#FFE0E6',   // hospitales
+    landSchool:      '#ECEECC',   // colegios
+    aeroway:         '#E9E6EA',   // superficie de aeropuerto
+    aerowayLine:     '#D1D1D1',   // pistas / rodaje
+
+    // ── Edificios (footprints 2D) ──
+    building:        '#E3E4E7',   // relleno de edificio
+    buildingEdge:    '#CBCDD2',   // borde de edificio
+    building3D:      '#C2CBDB',   // extrusión (solo con el botón 3D activo)
+
+    // ── Calles (relleno) ──
+    roadMotorway:        '#FFCC88',   // autopista / autovía
+    roadTrunkPrimary:    '#FFE9A6',   // vías primarias (troncales)
+    roadSecondaryTertiary:'#FFEEAA',  // secundarias / terciarias
+    roadLink:            '#FFEEAA',   // enlaces / ramales
+    roadMinor:           '#FFFFFF',   // calles menores
+    roadServiceTrack:    '#FFFFFF',   // servicio / pistas
+    roadPath:            '#FFFFFF',   // sendas / peatonal
+    rail:                '#BBBBBB',   // ferrocarril / metro
+    // ── Calles (contorno / casing) ──
+    roadMajorCasing:     '#E9AC77',   // contorno de vías principales
+    roadMinorCasing:     '#CFCDCA',   // contorno de calles menores
+    // ── Límites ──
+    boundary:            '#9E9CAB',   // límites administrativos
+
+    // ── ETIQUETAS / LETRAS (texto de cada tipo) ──
+    labelCountry:    '#000000',   // países
+    labelState:      '#333333',   // comunidades / estados
+    labelCity:       '#000000',   // ciudades (y capitales)
+    labelTown:       '#000000',   // pueblos
+    labelVillage:    '#000000',   // aldeas
+    labelDistrict:   '#333333',   // barrios / distritos (otros lugares)
+    labelStreet:     '#555555',   // nombres de calle
+    labelStreetPath: '#A8977E',   // nombres de senda / peatonal
+    labelWater:      '#495E91',   // nombres de mar / lago
+    labelWaterway:   '#74AEE9',   // nombres de río
+    labelPoi:        '#666666',   // comercios / puntos de interés
+    labelPoiTransit: '#2E5A80',   // paradas de transporte
+    labelAirport:    '#666666',   // aeropuertos
+    labelHalo:       '#FFFFFF',   // halo (borde) de TODAS las letras
   },
 
-  // ══════════════ 🌙  NOCHE  ══════════════
+  // ══════════════════════════════ 🌙  NOCHE  ══════════════════════════════
   night: {
-    // Fondo y agua
+    // ── Fondo y agua ──
     background:      '#0F1A21',
-    water:          '#0B2637',
-    waterway:       '#20455A',
-    // Verdes y usos de suelo
-    landPark:       '#16281F',
-    landParkEdge:   '#1D3327',
-    landWood:       '#15291E',
-    landGrass:      '#173021',
-    landResidential:'#152530',
-    landSand:       '#2A2A1E',
-    landIce:        '#1F3038',
-    landPitch:      '#1A2A2A',
-    landCemetery:   '#182A20',
-    landHospital:   '#2A2030',
-    landSchool:     '#26281E',
-    aeroway:        '#1C2833',
-    aerowayLine:    '#2A3A44',
-    // Edificios (footprints 2D, algo más claros que el fondo para que se lean)
-    building:       '#1E2F3B',
-    buildingEdge:   '#33485A',
-    building3D:     '#233240',
-    // Calles
-    roadMajor:      '#97B0C1',   // ← vías principales de noche (celeste plomo: resalta suave)
-    roadMajorCasing:'#2B3E4A',
-    roadMinor:      '#6A7C84',
-    roadMinorCasing:'#1C2A30',
-    roadPath:       '#4A5A62',
-    rail:           '#3F4D55',
-    boundary:       '#3A4A54',
-    // Etiquetas (texto)
-    labelPlace:     '#CBD8DC',
-    labelRoad:      '#AEBEC4',
-    labelWater:     '#7FB0C4',
-    labelPoi:       '#8B9AA2',
-    labelHalo:      '#091319',
+    water:           '#0B2637',
+    waterway:        '#20455A',
+
+    // ── Verdes y usos de suelo ──
+    landPark:        '#16281F',
+    landParkEdge:    '#1D3327',
+    landWood:        '#15291E',
+    landGrass:       '#173021',
+    landResidential: '#152530',
+    landSand:        '#2A2A1E',
+    landIce:         '#1F3038',
+    landPitch:       '#1A2A2A',
+    landCemetery:    '#182A20',
+    landHospital:    '#2A2030',
+    landSchool:      '#26281E',
+    aeroway:         '#1C2833',
+    aerowayLine:     '#2A3A44',
+
+    // ── Edificios (footprints 2D) ──
+    building:        '#1E2F3B',
+    buildingEdge:    '#33485A',
+    building3D:      '#233240',
+
+    // ── Calles (relleno) — familia "celeste plomo": resalta suave ──
+    roadMotorway:        '#A6BDCC',   // autopista / autovía (la más marcada)
+    roadTrunkPrimary:    '#97B0C1',   // vías primarias
+    roadSecondaryTertiary:'#7E96A6',  // secundarias / terciarias
+    roadLink:            '#8AA0AE',   // enlaces / ramales
+    roadMinor:           '#5E7078',   // calles menores
+    roadServiceTrack:    '#55666E',   // servicio / pistas
+    roadPath:            '#4A5A62',   // sendas / peatonal
+    rail:                '#3F4D55',   // ferrocarril / metro
+    // ── Calles (contorno / casing) ──
+    roadMajorCasing:     '#2B3E4A',
+    roadMinorCasing:     '#1C2A30',
+    // ── Límites ──
+    boundary:            '#3A4A54',
+
+    // ── ETIQUETAS / LETRAS ──
+    labelCountry:    '#D8E2E6',
+    labelState:      '#B9C7CD',
+    labelCity:       '#DDE7EA',
+    labelTown:       '#C6D2D6',
+    labelVillage:    '#AEBBC0',
+    labelDistrict:   '#9FB0B6',
+    labelStreet:     '#93A6AE',
+    labelStreetPath: '#7E8F86',
+    labelWater:      '#6E9AB8',
+    labelWaterway:   '#6BA0C4',
+    labelPoi:        '#8B9AA2',
+    labelPoiTransit: '#6E9AB8',
+    labelAirport:    '#8B9AA2',
+    labelHalo:       '#0A1319',
   },
 }
 
 // ─── Limpieza del mapa (independiente del tema) ──────────────────────────────────
 export const MAP_OPTIONS = {
-  flat2D:        true,   // mapa plano tipo Google (oculta los edificios 3D del estilo)
-  hidePoiStops:  true,   // oculta los iconos de paradas de transporte (poi_transit)
-  hidePoiPlaces: true,   // oculta los iconos de comercios / puntos de interés
+  flat2D:        true,   // mapa plano tipo Google (oculta edificios 3D del estilo)
+  hidePoiStops:  true,   // oculta iconos de paradas de transporte (poi_transit)
+  hidePoiPlaces: true,   // oculta iconos de comercios / puntos de interés
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  Maquinaria — normalmente no hace falta tocar de aquí para abajo.
-//  Asigna cada capa del estilo Liberty a un rol de la paleta (garantiza cobertura
-//  total: no queda ninguna capa con color sin asignar).
+//  Maquinaria — asigna cada capa del estilo Liberty a un rol de la paleta.
+//  Cobertura total: si añades una capa nueva y no matchea, no se pinta (queda su
+//  color original). Todas las capas de color del estilo actual están cubiertas.
 // ═══════════════════════════════════════════════════════════════════════════════
 function rolesFor(l) {
   const id = l.id, t = l.type
+
+  // Fondo, agua, tierra
   if (t === 'background') return [['background-color', 'background']]
   if (id === 'water') return [['fill-color', 'water']]
-  if (/^waterway/.test(id)) return [['line-color', 'waterway']]
+  if (/^waterway/.test(id) && t === 'line') return [['line-color', 'waterway']]
   if (id === 'park') return [['fill-color', 'landPark'], ['fill-outline-color', 'landParkEdge']]
   if (id === 'park_outline') return [['line-color', 'landParkEdge']]
   if (id === 'landuse_residential') return [['fill-color', 'landResidential']]
@@ -126,16 +165,41 @@ function rolesFor(l) {
   if (id === 'building') return [['fill-color', 'building'], ['fill-outline-color', 'buildingEdge']]
   if (id === 'building-3d') return [['fill-extrusion-color', 'building3D']]
   if (/^boundary/.test(id)) return [['line-color', 'boundary']]
+
+  // Ferrocarril (antes que las calles: los ids contienen 'rail')
   if (/rail/.test(id)) return [['line-color', 'rail']]
-  if (/casing/.test(id)) return [['line-color', /(motorway|trunk|primary|secondary|tertiary|link)/.test(id) ? 'roadMajorCasing' : 'roadMinorCasing']]
-  if (t === 'line' && /(motorway|trunk|primary|secondary|tertiary|link)/.test(id)) return [['line-color', 'roadMajor']]
+
+  // Contornos de calle (casing) — antes que los rellenos
+  if (/casing/.test(id)) {
+    const major = /(motorway|trunk|primary|secondary|tertiary|link)/.test(id)
+    return [['line-color', major ? 'roadMajorCasing' : 'roadMinorCasing']]
+  }
+
+  // Rellenos de calle (por clase). Orden: link antes que motorway (motorway_link = ramal).
+  if (t === 'line' && /_link/.test(id)) return [['line-color', 'roadLink']]
+  if (t === 'line' && /motorway/.test(id)) return [['line-color', 'roadMotorway']]
+  if (t === 'line' && /(trunk|primary)/.test(id)) return [['line-color', 'roadTrunkPrimary']]
+  if (t === 'line' && /(secondary|tertiary)/.test(id)) return [['line-color', 'roadSecondaryTertiary']]
+  if (t === 'line' && /(service|track)/.test(id)) return [['line-color', 'roadServiceTrack']]
   if (t === 'line' && /(path|pedestrian)/.test(id)) return [['line-color', 'roadPath']]
-  if (t === 'line' && /(minor|street|service|track)/.test(id)) return [['line-color', 'roadMinor']]
+  if (t === 'line' && /(minor|street)/.test(id)) return [['line-color', 'roadMinor']]
+
+  // Etiquetas (texto). Cada tipo su propio color; halo compartido.
   if (t === 'symbol') {
-    let r = 'labelPlace'
-    if (/water/.test(id)) r = 'labelWater'
-    else if (/highway-name/.test(id)) r = 'labelRoad'
-    else if (/poi|airport/.test(id)) r = 'labelPoi'
+    let r = 'labelDistrict'
+    if (/country/.test(id)) r = 'labelCountry'
+    else if (/state/.test(id)) r = 'labelState'
+    else if (/city/.test(id)) r = 'labelCity'
+    else if (/town/.test(id)) r = 'labelTown'
+    else if (/village/.test(id)) r = 'labelVillage'
+    else if (/label_other/.test(id)) r = 'labelDistrict'
+    else if (/highway-name-path/.test(id)) r = 'labelStreetPath'
+    else if (/highway-name/.test(id)) r = 'labelStreet'
+    else if (/waterway/.test(id)) r = 'labelWaterway'
+    else if (/water_name/.test(id)) r = 'labelWater'
+    else if (/poi_transit/.test(id)) r = 'labelPoiTransit'
+    else if (/poi/.test(id)) r = 'labelPoi'
+    else if (/airport/.test(id)) r = 'labelAirport'
     return [['text-color', r], ['text-halo-color', 'labelHalo']]
   }
   return []
