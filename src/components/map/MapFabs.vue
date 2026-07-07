@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 // Botones flotantes sobre el mapa: speed-dial de utilidades + tema (móvil) y los
 // botones para reabrir los paneles (info / capas) cuando están cerrados.
 // Estado 100% desde los composables singleton → sin props.

@@ -1,12 +1,17 @@
-<script setup>
+<script setup lang="ts">
 // Barra superior: marca + búsqueda + interruptor de tema. Autocontenida y responsive.
 // En escritorio es una barra sólida; en móvil se convierte en cápsula flotante glass
 // sobre el mapa (el mapa es el protagonista, la UI flota encima).
 import { useTheme } from '../composables/useTheme.js'
 
 const { theme, toggleTheme } = useTheme()
-defineProps({ query: { type: String, default: '' } })
-const emit = defineEmits(['update:query', 'search'])
+defineProps<{ query?: string }>()
+const emit = defineEmits<{
+  'update:query': [value: string]
+  search: []
+}>()
+
+const onInput = (e: Event) => emit('update:query', (e.target as HTMLInputElement).value)
 </script>
 
 <template>
@@ -28,7 +33,7 @@ const emit = defineEmits(['update:query', 'search'])
         </span>
         <input
           :value="query"
-          @input="emit('update:query', $event.target.value)"
+          @input="onInput"
           @keyup.enter="emit('search')"
           type="text"
           placeholder="Ej: Carrer de València, 285"

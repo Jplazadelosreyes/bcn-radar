@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 // Panel flotante "Eines" (abajo-derecha): mapa base · vista 3D · herramientas (medir · radio).
 // Basemap y 3D vienen del store useMapTools (sin props). Radio y medir aún son estado
 // compartido en App.vue → llegan por props/emits hasta que migren a store (deuda anotada).

@@ -1,13 +1,33 @@
-<script setup>
+<script setup lang="ts">
 // Explorador de parada (presentacional): muestra las líneas que pasan por la parada
 // seleccionada y emite la acción; el dibujo del recorrido lo maneja el padre por ahora.
 // `chips` viene ya anotado con `on` (línea activa) para no depender de la lógica del padre.
-defineProps({
-  stop: { type: Object, default: null },        // { name, sub?, chips:[{id,short,color,long,on}] }
-  chips: { type: Array, default: () => [] },
-  hasSelection: { type: Boolean, default: false },
-})
-const emit = defineEmits(['close', 'pick', 'clear'])
+export interface StopChip {
+  id: string | number
+  short: string
+  long?: string
+  color: string
+  on?: boolean
+}
+export interface Stop {
+  name: string
+  sub?: string
+  chips: StopChip[]
+}
+
+withDefaults(
+  defineProps<{
+    stop?: Stop | null
+    chips?: StopChip[]
+    hasSelection?: boolean
+  }>(),
+  { stop: null, chips: () => [], hasSelection: false },
+)
+const emit = defineEmits<{
+  close: []
+  pick: [chip: StopChip]
+  clear: []
+}>()
 </script>
 
 <template>
