@@ -6,7 +6,6 @@ import { fetchFinca } from './services/catastro.js'
 import { fetchAfectaciones, classificLabel } from './services/piu.js'
 import { fetchBicing } from './services/movilidad.js'
 import { loadTransit, stopsGeoJSON, routeGeoJSON, routeChip } from './services/transit.js'
-import { describeLayer } from './services/layer-info.js'
 import { loadPoi, poiFC } from './services/poi.js'
 import { fetchTemperatura } from './services/meteo.js'
 import { fetchAlquilerBarcelona } from './services/valor.js'
@@ -23,6 +22,7 @@ import MapControls from './components/map/MapControls.vue'
 import { useSheetDrag } from './composables/useSheetDrag.js'
 import SectionCard from './components/sidebar/SectionCard.vue'
 import ZonasCard from './components/sidebar/ZonasCard.vue'
+import CapasCard from './components/sidebar/CapasCard.vue'
 
 // Tema claro/oscuro (estado compartido en el composable). El chrome lo gestiona
 // useTheme; aquí recoloreamos el mapa (paleta completa día/noche) + la máscara.
@@ -43,14 +43,6 @@ const { isMobile, sidebarOpen, controlsOpen, utilsOpen } = usePanels()
 // Arrastre del asa de los sheets (composable compartido). El sidebar colapsa las cards
 // al bajar desde expandido; los controles no lo necesitan (importan useSheetDrag sin callback).
 const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { cardOpen.value = {} })
-
-// ── Controles del mapa ── basemap + 3D los gestiona MapControls vía el store useMapTools.
-const fincasOn = ref(false)        // parcelas Catastro
-function toggleFincas() {
-  fincasOn.value = !fincasOn.value
-  if (map.getLayer('catastro')) map.setLayoutProperty('catastro', 'visibility', fincasOn.value ? 'visible' : 'none')
-  if (fincasOn.value && map.getZoom() < 17) map.easeTo({ zoom: 17 })
-}
 
 // Variables reactivas para el panel
 const searchQuery = ref('')
@@ -391,123 +383,6 @@ const checklistComprador = [
   { icono: '🧾', titulo: 'Último recibo de IBI y Basuras', desc: 'Asegura que los impuestos municipales están al día; el año en curso se prorratea.', url: null },
   { icono: '⚡', titulo: 'Últimas facturas de suministros', desc: 'Evita cortes; si la luz lleva meses de baja, exigirán un nuevo Boletín (CIE).', url: 'https://www.edistribucion.com/' },
 ]
-
-// ═══ Capas públicas — agregador de servicios WMS de utilidad pública ═══
-// Catálogo declarativo: cada fuente es un WMS público (HTTPS + CORS verificado).
-// Añadir una fuente nueva = añadir una entrada aquí; el resto del código no cambia.
-const WMS_SOURCES = [
-  {
-    id: 'ajbcn-urb',
-    label: 'Urbanismo · Ajuntament de Barcelona',
-    badge: 'PIU',
-    attribution: 'WMS Urbanisme · Ajuntament de Barcelona',
-    base: 'https://w133.bcn.cat/WMSURBANISME/service.svc/get',
-    version: '1.3.0',
-    portal: 'https://ajuntament.barcelona.cat/informaciourbanistica/cerca/es/',
-    // Capas curadas: las que de verdad pesan para decidir una compra.
-    // Cada una es la capa "grupo" del WMS (ya agrega polígono + código + línea).
-    layers: [
-      { name: 'Qualificació_urbanística', label: 'Calificación urbanística', hint: 'La clave del suelo: qué puedes o no construir en la parcela.' },
-      { name: 'Sector_de_planejament', label: 'Sectores de planeamiento', hint: 'Áreas con plan urbanístico propio.' },
-      { name: 'Àmbit_de_planejament_aprovat_definitivament', label: 'Planeamiento aprobado', hint: 'Planes ya en vigor que afectan la zona.' },
-      { name: 'Àmbit_de_planejament_en_tràmit', label: 'Planeamiento en trámite', hint: 'Lo que viene: revalorización o restricción futura.' },
-      { name: 'Àmbit_de_suspensió_de_llicències', label: 'Suspensión de licencias', hint: 'Zonas donde ahora NO se conceden licencias de obra.' },
-      { name: 'Àmbit_de_gestió', label: 'Ámbitos de gestión', hint: 'Reparcelaciones y gestión urbanística en curso.' },
-      { name: 'Catàleg_de_patrimoni', label: 'Patrimonio protegido', hint: 'Edificios catalogados: obras limitadas, posibles ayudas.' },
-      { name: 'Ordenació_volumètrica', label: 'Ordenación volumétrica', hint: 'Alturas y volúmenes edificables permitidos.' },
-      { name: 'Parcel·la', label: 'Parcelario municipal', hint: 'Límites de parcela del Ajuntament.' },
-    ],
-  },
-  {
-    id: 'muc-cat',
-    label: 'Urbanismo · Mapa Urbanístic de Catalunya',
-    badge: 'MUC',
-    attribution: 'MUC · Generalitat de Catalunya',
-    base: 'https://dtes.gencat.cat/webmap/MUC/service.svc/get',
-    version: '1.3.0',
-    portal: 'https://territori.gencat.cat/ca/06_territori_i_urbanisme/observatori_territori/mapa_urbanistic_de_catalunya/',
-    // El MUC unifica el planeamiento de TODA Cataluña (útil para mirar fuera de BCN).
-    // Solo curo la capa completa (verificada sobre BCN); el resto, en "ver todas".
-    layers: [
-      { name: 'MUC', label: 'Mapa urbanístico (Cataluña)', hint: 'Planeamiento vigente de toda Cataluña, unificado en una capa.' },
-    ],
-  },
-  {
-    id: 'aca-inund',
-    label: 'Inundabilidad · Agència Catalana de l\'Aigua',
-    badge: 'ACA',
-    attribution: 'Zones inundables · Agència Catalana de l\'Aigua',
-    base: 'https://aplicacions.aca.gencat.cat/geoserver/vishid/wms',
-    version: '1.3.0',
-    portal: 'https://aca.gencat.cat/ca/laigua/proteccio-i-conservacio/gestio-de-la-inundabilitat/',
-    // Láminas de inundación por periodo de retorno (due diligence de compra).
-    layers: [
-      { name: 'vishid:Zones_inundables_T10', label: 'Inundable · frecuente (T10)', hint: 'Se inunda con episodios de ~10 años. Riesgo alto: evítalo.' },
-      { name: 'vishid:Zones_inundables_T100', label: 'Inundable · 100 años (T100)', hint: 'Referencia legal de riesgo. Afecta seguros e hipoteca.' },
-      { name: 'vishid:Zones_inundables_T500', label: 'Inundable · excepcional (T500)', hint: 'Episodios extremos de ~500 años. Riesgo bajo pero a conocer.' },
-    ],
-  },
-]
-
-const wmsExpanded = ref({})       // sourceId -> acordeón de fuente abierto
-const wmsShowAll = ref({})        // sourceId -> sección "ver todas" abierta
-const wmsActive = ref({})         // layerKey -> capa encendida en el mapa
-const wmsAllLayers = ref({})      // sourceId -> [{ name, label }] (del GetCapabilities)
-const wmsAllStatus = ref({})      // sourceId -> 'loading' | 'ok' | 'error'
-const wmsAdded = new Set()        // ids de capas ya creadas en el mapa (crea 1 vez, luego visibility)
-const layerKey = (sid, name) => `${sid}::${name}`
-const toggleWmsExpand = (sid) => { wmsExpanded.value = { ...wmsExpanded.value, [sid]: !wmsExpanded.value[sid] } }
-
-// URL de tiles WMS para MapLibre (raster). EPSG:3857 va sin invertir ejes en 1.3.0.
-function wmsTileUrl(src, layerName) {
-  const crs = src.version === '1.3.0' ? 'crs' : 'srs'
-  const p = new URLSearchParams({ service: 'WMS', request: 'GetMap', version: src.version, layers: layerName, styles: '', format: 'image/png', transparent: 'true', width: '256', height: '256' })
-  return `${src.base}?${p.toString()}&${crs}=EPSG:3857&bbox={bbox-epsg-3857}`
-}
-
-// Enciende/apaga una capa: la crea la primera vez, luego solo alterna visibilidad.
-function toggleWms(src, layer) {
-  if (!map) return
-  const key = layerKey(src.id, layer.name)
-  const on = !wmsActive.value[key]
-  wmsActive.value = { ...wmsActive.value, [key]: on }
-  const id = `wms-${src.id}-${layer.name}`
-  if (on && !wmsAdded.has(id)) {
-    map.addSource(id, { type: 'raster', tiles: [wmsTileUrl(src, layer.name)], tileSize: 256, attribution: src.attribution })
-    map.addLayer({ id, type: 'raster', source: id, paint: { 'raster-opacity': 0.78 } })
-    wmsAdded.add(id)
-  } else if (map.getLayer(id)) {
-    map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none')
-  }
-}
-
-// "Ver todas": vuelca el catálogo completo del servicio (GetCapabilities), sin las ya curadas.
-async function loadAllWms(src) {
-  wmsShowAll.value = { ...wmsShowAll.value, [src.id]: !wmsShowAll.value[src.id] }
-  if (wmsAllLayers.value[src.id] || !wmsShowAll.value[src.id]) return
-  wmsAllStatus.value = { ...wmsAllStatus.value, [src.id]: 'loading' }
-  try {
-    const url = `${src.base}?service=WMS&request=GetCapabilities&version=${src.version}`
-    const xml = new DOMParser().parseFromString(await (await fetch(url)).text(), 'text/xml')
-    const curated = new Set(src.layers.map(l => l.name))
-    const seen = new Set(), all = []
-    for (const ly of xml.getElementsByTagName('Layer')) {
-      let name = null, title = null
-      for (const c of ly.children) {
-        if (c.tagName === 'Name' && name === null) name = c.textContent
-        if (c.tagName === 'Title' && title === null) title = c.textContent
-      }
-      if (!name || curated.has(name) || seen.has(name)) continue
-      seen.add(name)
-      all.push({ name, label: title || name, desc: describeLayer(name) })
-    }
-    wmsAllLayers.value = { ...wmsAllLayers.value, [src.id]: all }
-    wmsAllStatus.value = { ...wmsAllStatus.value, [src.id]: 'ok' }
-  } catch (e) {
-    console.warn('GetCapabilities', src.id, e)
-    wmsAllStatus.value = { ...wmsAllStatus.value, [src.id]: 'error' }
-  }
-}
 
 // ═══ Movilidad y servicios — capas de datos ABIERTOS (GeoJSON en vivo) ═══
 // Catálogo declarativo por categoría. Solo se listan capas validadas y funcionales
@@ -1785,53 +1660,7 @@ onMounted(() => {
         </SectionCard>
 
         <!-- CAPAS PÚBLICAS — agregador WMS (persistente, sobre las fichas contextuales) -->
-        <SectionCard ico="🗂️" title="Capas del mapa" :open="!!cardOpen['capas']" body-class="capas-body" @toggle="toggleCard('capas')">
-            <p class="capas-intro">Superpón capas oficiales sobre el mapa. Cada fuente enlaza a su portal para contrastar el dato.</p>
-
-            <!-- Parcelas del Catastro — antes en el panel derecho; es una capa más del mapa -->
-            <label class="capas-layer">
-              <input type="checkbox" :checked="fincasOn" @change="toggleFincas()">
-              <span class="capas-layer-body">
-                <span class="capas-layer-t">Parcelas (Catastro)</span>
-                <span class="capas-layer-h">Dibuja los límites de parcela para seleccionar una finca (zoom cercano).</span>
-              </span>
-            </label>
-            <div v-for="src in WMS_SOURCES" :key="src.id" class="capas-src">
-              <button class="capas-src-head" @click="toggleWmsExpand(src.id)">
-                <span class="capas-chev side" :class="{ open: wmsExpanded[src.id] }">▸</span>
-                <span class="capas-src-t">{{ src.label }}</span>
-                <span v-if="src.badge" class="capas-badge">{{ src.badge }}</span>
-              </button>
-              <div v-show="wmsExpanded[src.id]" class="capas-src-body">
-                <a v-if="src.portal" class="capas-portal" :href="src.portal" target="_blank" rel="noopener">Portal oficial ↗</a>
-                <label v-for="l in src.layers" :key="l.name" class="capas-layer">
-                  <input type="checkbox" :checked="!!wmsActive[layerKey(src.id, l.name)]" @change="toggleWms(src, l)">
-                  <span class="capas-layer-body">
-                    <span class="capas-layer-t">{{ l.label }}</span>
-                    <span class="capas-layer-h">{{ l.hint }}</span>
-                  </span>
-                </label>
-
-                <!-- Ver todas: vuelca el catálogo completo del servicio -->
-                <button class="capas-all-toggle" @click="loadAllWms(src)">
-                  <span class="capas-chev side" :class="{ open: wmsShowAll[src.id] }">▸</span>
-                  Ver todas las capas
-                  <span v-if="wmsAllLayers[src.id]" class="capas-count">{{ wmsAllLayers[src.id].length + src.layers.length }}</span>
-                </button>
-                <div v-show="wmsShowAll[src.id]" class="capas-all">
-                  <span v-if="wmsAllStatus[src.id] === 'loading'" class="capas-status">cargando catálogo…</span>
-                  <span v-else-if="wmsAllStatus[src.id] === 'error'" class="capas-status err">no se pudo cargar el catálogo</span>
-                  <label v-for="l in (wmsAllLayers[src.id] || [])" :key="l.name" class="capas-layer slim">
-                    <input type="checkbox" :checked="!!wmsActive[layerKey(src.id, l.name)]" @change="toggleWms(src, l)">
-                    <span class="capas-layer-body">
-                      <span class="capas-layer-t">{{ l.label }}</span>
-                      <span v-if="l.desc" class="capas-layer-h">{{ l.desc }}</span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-        </SectionCard>
+        <CapasCard :open="!!cardOpen['capas']" @toggle="toggleCard('capas')" />
 
         <!-- MOVILIDAD Y SERVICIOS — capas de datos abiertos en vivo -->
         <SectionCard ico="🚌" title="Movilidad y servicios" :open="!!cardOpen['mov']" body-class="capas-body" @toggle="toggleCard('mov')">
