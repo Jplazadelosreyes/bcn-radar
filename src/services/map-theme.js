@@ -77,8 +77,8 @@ export const MAP_COLORS = {
     buildingEdge:   '#33485A',
     building3D:     '#233240',
     // Calles
-    roadMajor:      '#EFC15C',   // ← calles AMARILLAS de noche (el contraste que pediste)
-    roadMajorCasing:'#5A4A24',
+    roadMajor:      '#97B0C1',   // ← vías principales de noche (celeste plomo: resalta suave)
+    roadMajorCasing:'#2B3E4A',
     roadMinor:      '#6A7C84',
     roadMinorCasing:'#1C2A30',
     roadPath:       '#4A5A62',
