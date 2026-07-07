@@ -32,9 +32,9 @@ export const MAP_COLORS = {
     landSchool:     '#ECEECC',   // colegios
     aeroway:        '#E9E6EA',   // aeropuerto (superficie)
     aerowayLine:    '#D1D1D1',   // pistas / calles de rodaje
-    // Edificios
-    building:       '#E6E1DA',   // edificios (relleno 2D)
-    buildingEdge:   '#D9D3CB',   // borde de edificio
+    // Edificios (footprints 2D, tipo Google — grises visibles sobre el fondo beige)
+    building:       '#E3E4E7',   // edificios (relleno 2D)
+    buildingEdge:   '#CBCDD2',   // borde de edificio
     building3D:     '#C2CBDB',   // edificios extruidos (solo si activas el 3D)
     // Calles
     roadMajor:      '#FCE7A0',   // vías principales (autopista/avenida) ← el "amarillo" de día
@@ -72,9 +72,9 @@ export const MAP_COLORS = {
     landSchool:     '#26281E',
     aeroway:        '#1C2833',
     aerowayLine:    '#2A3A44',
-    // Edificios
-    building:       '#1B2B35',
-    buildingEdge:   '#243642',
+    // Edificios (footprints 2D, algo más claros que el fondo para que se lean)
+    building:       '#1E2F3B',
+    buildingEdge:   '#33485A',
     building3D:     '#233240',
     // Calles
     roadMajor:      '#EFC15C',   // ← calles AMARILLAS de noche (el contraste que pediste)
@@ -159,7 +159,13 @@ export function applyMapTheme(map, mode) {
 export function applyMapOptions(map) {
   if (!map) return
   const hide = (id) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', 'none')
-  if (MAP_OPTIONS.flat2D) hide('building-3d')
+  if (MAP_OPTIONS.flat2D) {
+    // El estilo solo dibuja la capa plana `building` hasta z14 y a partir de ahí usa la 3D.
+    // Para un mapa 2D tipo Google: ocultamos la 3D y EXTENDEMOS la plana a todos los zooms,
+    // así los footprints se ven a nivel calle. (El botón "Edificios 3D" de la app sigue aparte.)
+    hide('building-3d')
+    if (map.getLayer('building')) map.setLayerZoomRange('building', 13, 24)
+  }
   if (MAP_OPTIONS.hidePoiStops) hide('poi_transit')
   if (MAP_OPTIONS.hidePoiPlaces) { hide('poi_r1'); hide('poi_r7'); hide('poi_r20') }
 }
