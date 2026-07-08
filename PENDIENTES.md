@@ -1,6 +1,6 @@
 # BCN Radar — Pendientes y hoja de ruta
 
-> Estado al **2026-07-06**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
+> Estado al **2026-07-09**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
 > nueva: resume qué está hecho, qué falta y en qué orden. Actualízalo al cerrar cada sesión.
 
 ## Objetivo del producto
@@ -13,8 +13,10 @@ entender cómo es la vida cotidiana en Barcelona.** Idioma: español neutro (tú
 
 - Repo: `git@github.com:Jplazadelosreyes/bcn-radar.git`
 - Live: https://jplazadelosreyes.github.io/bcn-radar/ (GitHub Pages vía Actions)
-- Stack: Vue 3 `<script setup>` + Vite 8 + MapLibre GL 5, SPA sin router.
-- Dev: `npm run dev` (:5173).
+- Stack: Vue 3 `<script setup lang="ts">` + **TypeScript** + Vite 8 + MapLibre GL 5, SPA sin router.
+- Tooling: ESLint (flat) + Prettier, Vitest + jsdom, CI (job `check` lint+typecheck+test bloquea deploy).
+  Scripts: `dev` · `build` · `typecheck` (vue-tsc) · `lint`/`lint:fix` · `format` · `test`/`test:watch`.
+- Dev: `npm run dev` (:5173, pero **Zerty Hub suele ocupar :5173** → arrancar en `--port 5178`).
 
 ## Método de trabajo (vigente)
 
@@ -26,7 +28,34 @@ entender cómo es la vida cotidiana en Barcelona.** Idioma: español neutro (tú
 - 1 hito por vez; el operador verifica el render en su navegador (WebGL no funciona en el
   entorno de la IA). Build con `npm run build` tras cada cambio.
 
-## HECHO — sesión 2026-07-06 (rediseño móvil completo, ⚠️ SIN COMMIT al cierre)
+## HECHO — sesión 2026-07-08/09 (refactor profesional + TypeScript completo, todo commiteado)
+
+El operador pidió estructurar el proyecto "como dios manda, mejores prácticas, es mi carta de
+presentación". Se rompió el monolito y se cerró la migración a TS. **Todo pusheado a `main`.**
+
+- **App.vue: 2.694 → 79 líneas** (composición pura). Se extrajeron TODOS los componentes:
+  `components/map/` = MapCanvas (el motor: todo el `onMounted` + click-handler), MapFabs,
+  MapControls, StopExplorer · `components/sidebar/` = SectionCard (colapsable reusable),
+  InfoDossier (dossier finca 5 niveles), CapasCard, MovilidadCard, ZonasCard · TheTopbar.
+- **CSS fuera de App.vue** → `src/styles/`: `tokens.css` (design tokens día/noche + reset),
+  `components.css` (chrome), `responsive.css` (móvil), importados en cascada por `index.css`
+  (lo carga `main.js`). App.vue ya no tiene `<style>`.
+- **Stores singleton** en `src/composables/` (14, TODOS `.ts`): useMapStore (handle del mapa +
+  mapContext + overlayClickLayers/stopLayerIds/marker), useMapTools, useSheetDrag, useZones,
+  useLayers, useFinca, useRadio, useMovilidad, useSearch, useMeasure, useTheme, usePanels,
+  useAutoZones, useMap. Servicios en `src/services/` siguen en `.js` (overpass, map-theme, catastro…).
+- **TypeScript en TODO el árbol.** Tipos de dominio como fuente única exportados desde su store
+  (TransportLine, StopChip, SelectedStop, MovLayer, RadioStop, WmsSource/WmsLayer, FincaData,
+  MapContext, Basemap). El handle de MapLibre se tipa `any` en UN solo sitio (useMapStore) →
+  sin fricción de tipos aguas abajo; `any` acotado y justificado por archivo solo en las
+  fronteras imperativas (MapLibre + Overpass/GTFS). `vue/block-lang` reactivado como **error**
+  (ningún SFC nuevo entra sin `lang="ts"`).
+- **Tests** en `src/composables/__tests__/useFinca.test.ts` (6, lógica de veredictos ITE/uso/
+  coeficiente) + `src/services/__tests__/map-theme.test.ts` (4). **10 verdes.**
+- **Verde de punta a punta**: typecheck 0 errores · eslint limpio · 10 tests · build OK ·
+  runtime verificado en navegador (mapa 2D, controles, dossier de ciudad renderizan).
+
+## HECHO — sesión 2026-07-06 (rediseño móvil completo)
 
 **Móvil (≤680px):**
 - **Cápsula de búsqueda flotante glass** (blur+transparencia, chaflán Cerdà): logo + marca en
@@ -73,25 +102,32 @@ SOLO lienzo: Mapa base + Vista 3D + Herramientas.
 
 ## PENDIENTE — orden propuesto
 
-1. **Commitear el checkpoint** — todo lo de arriba está sin commit (primera acción de la
-   próxima sesión; el operador cerró la sesión antes de confirmar).
-2. **Curaduría declarativa** — `src/config/catalog.js`: cada capa con `orden`, `destacada`
-   (visible en card vs "ver más") y `porDefecto`. El operador cura editando ese archivo.
-   Aplicar a Capas del mapa (1º Qualificació PIU, 2º MUC, …) y a Movilidad.
-3. **Seguir rompiendo el monolito**: extraer `MapControls.vue` (panel der.), `LayerPanel.vue`,
-   `MobilityPanel.vue` + explorador de paradas, `ZonesPanel.vue`, `FincaReport.vue`.
-   Borrar `HelloWorld.vue` (basura del scaffold).
-4. **Pulido móvil restante**, luego **fase PC**: hover en zonas manuales (feature-state:
+> Estructura y migración TS: **HECHAS** (ver sesión 07-08/09). Monolito roto, checkpoint commiteado.
+
+1. **Curaduría declarativa** — `src/config/`: cada capa con `orden`, `destacada` (visible en
+   card vs "ver más") y `porDefecto`. El operador cura editando ese archivo. Aplicar a Capas
+   del mapa (1º Qualificació PIU, 2º MUC, …) y a Movilidad. **Nota**: se pospuso a propósito —
+   MOVILIDAD está acoplado a sus loaders (no es dato puro); TRANSPORTES/WMS_SOURCES sí son puros
+   y podrían salir a `config/`. Decidir si vale la indirección o se quedan en sus stores.
+2. **Más tests** — hoy 10 (useFinca + map-theme). Subir cobertura de lógica pura testeable
+   (chipsFor/isCurated de useMovilidad, derivados de useFinca, servicios de parseo).
+3. **Pulido móvil restante**, luego **fase PC**: hover en zonas manuales (feature-state:
    teñido+borde+nombre; en móvil el tap equivale), llevar los principios del layout móvil
    al escritorio, considerar distintos monitores.
-5. **Iconos de paradas**: GTFS (oficial) y OSM no coinciden en posición — diferenciarlas
+4. **Iconos de paradas**: GTFS (oficial) y OSM no coinciden en posición — diferenciarlas
    con iconografía propia por fuente/modo (detectado por el operador).
-6. **FUTURO (norte del producto): routing "llegar de A a B"** con rutas alternativas sobre el
+5. **FUTURO (norte del producto): routing "llegar de A a B"** con rutas alternativas sobre el
    mapa. Requiere motor (OTP/Valhalla/GraphHopper; el GTFS ya es nuestro). Para neófitos —
    la app que "mi madre entiende". La multi-selección de líneas ya permite comparar a ojo.
-7. Onboarding/aterrizaje con flujo creciente (idea del operador, sin diseñar).
-8. Datos que faltan si Open Data BCN coopera: tráfico, ruido, aire. Venta €/m² descartada
+6. Onboarding/aterrizaje con flujo creciente (idea del operador, sin diseñar).
+7. Datos que faltan si Open Data BCN coopera: tráfico, ruido, aire. Venta €/m² descartada
    (solo dato 2015, engañoso). 3D fotorrealista = key de pago (Google 3D Tiles), producto maduro.
+
+## Verificación NO cerrada (probar en navegador real)
+
+- **Click-de-finca a z≥16** (Catastro → dossier de finca): es código movido verbatim y sus
+  piezas (InfoDossier + useFinca) sí renderizan, pero el flujo completo clic→dossier no se
+  llegó a confirmar en vivo (el zoom vía automatización quedaba atascado en z14).
 
 ## Deuda técnica
 
