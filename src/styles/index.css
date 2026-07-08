@@ -1,0 +1,4 @@
+/* Estilos globales de BCN Radar. Orden = cascada: tokens → chrome → adaptaciones móviles. */
+@import './tokens.css';
+@import './components.css';
+@import './responsive.css';

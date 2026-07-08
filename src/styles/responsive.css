@@ -1,0 +1,151 @@
+/* Adaptaciones móviles: mapa a pantalla completa + sidebar/controles como bottom sheets. */
+/* ═══ MÓVIL: mapa a pantalla completa; sidebar y controles como paneles deslizables ═══ */
+@media (max-width: 680px) {
+  /* App full-screen: el documento NO scrollea; solo el interior del sheet. Mata el
+     rubber-band incómodo al interactuar con los componentes. */
+  html, body { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
+  .app-container { height: 100dvh; }
+  .fab { display: flex; }
+  .panel-close { display: flex; }
+  /* ── Bottom sheets como cards flotantes (patrón Google Maps + lenguaje de la cápsula):
+     margen a los lados y abajo, 4 esquinas redondeadas; nunca alcanzan el buscador ── */
+  .sidebar, .map-floating-controls {
+    position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
+    width: auto; max-width: none; height: auto;
+    border-radius: 18px; border: 1px solid var(--border-2);
+    box-shadow: 0 -12px 34px rgba(0,0,0,.30); z-index: 1150;
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    transform: translateY(110%); transition: transform .3s cubic-bezier(.3,.9,.3,1); will-change: transform;
+  }
+  /* Alturas de anclaje medidas en dvh (viewport REAL del móvil, sin contar la barra del
+     navegador) → el sheet nunca se cuela bajo el borde visible. Reservamos ~96px arriba
+     para la cápsula de búsqueda flotante. */
+  .sidebar { max-height: calc(100dvh - 96px - env(safe-area-inset-top)); }
+  /* Estado expandido (arrastre hacia arriba): ocupa toda la altura disponible */
+  .sidebar.full { height: calc(100dvh - 96px - env(safe-area-inset-top)); }
+  .map-floating-controls { max-height: min(60dvh, calc(100dvh - 96px - env(safe-area-inset-top))); padding-top: 0; }
+  .sidebar.open, .map-floating-controls.open { transform: translateY(0); }
+
+  /* Con un sheet abierto, las utilidades del mapa no aplican: fade out limpio */
+  .sheet-open .fab-round, .sheet-open .maplibregl-ctrl-top-right,
+  .sheet-open .maplibregl-ctrl-bottom-right, .sheet-open .maplibregl-ctrl-bottom-left {
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  .fab-round, .maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left {
+    transition: opacity .2s ease;
+  }
+
+  /* Asa del sheet: tap o deslizar hacia abajo = cerrar */
+  .sheet-handle {
+    display: flex; position: sticky; top: 0; z-index: 40; width: 100%;
+    padding: 9px 0 7px; align-items: center; justify-content: center;
+    background: var(--surface); border: 0; cursor: pointer;
+  }
+  .sheet-handle span { width: 38px; height: 4px; border-radius: 999px; background: var(--border-2); }
+
+  /* Sin ✕ en móvil: el asa (tap o deslizar) ya cierra el sheet */
+  .panel-close { display: none; }
+
+  /* ── Secciones del sheet como CARDS: borde, radio y retícula de padding única (16px)
+     para que cabecera y contenido queden alineados abierto o cerrado ── */
+  .sidebar {
+    padding: 0 10px calc(14px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  }
+  .map-floating-controls {
+    background: color-mix(in srgb, var(--float-bg) 84%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  }
+  .sheet-handle { background: transparent; }
+  .capas-panel { border: 1px solid var(--border-2); border-radius: 14px; margin: 8px 0 0; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+  .capas-head { padding: 13px 16px; border-radius: 13px 13px 0 0; background: color-mix(in srgb, var(--surface-3) 82%, transparent); }
+  .capas-body { padding: 12px 16px 14px; }
+  .context-panel .ficha-header { padding: 16px 16px 14px; }
+  .context-panel .ficha-block { padding: 15px 16px; }
+  .context-panel > :last-child, .capas-panel > div > .context-panel:last-child { border-bottom: 0; }
+
+  /* Contenidos curvados: los bloques internos siguen el lenguaje redondeado del sheet */
+  .ver, .clave-legend, .capas-src, .radio-ctl { border-radius: 12px; }
+  .ficha-cta, .ficha-doc, .tr-search, .search-box input { border-radius: 10px; }
+  .ficha-source, .capas-badge, .ficha-badge, .capas-portal { border-radius: 6px; }
+  .ficha-grid { border-radius: 12px; }
+  /* Explorador de parada como card inferior (zona del pulgar), alineado al lenguaje
+     de los sheets; los botones del mapa se desvanecen mientras está abierto */
+  .stop-explorer {
+    top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-width: none;
+    border-radius: 16px; clip-path: none; z-index: 1120;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--float-bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+    box-shadow: 0 -10px 30px rgba(0,0,0,.26);
+  }
+
+  /* ── Geografía de la UI móvil: buscador flota arriba; utilidades abajo ── */
+  /* FABs bajo la cápsula de búsqueda (52px + 10px de margen + aire) */
+  .fab-info { top: calc(72px + env(safe-area-inset-top)); left: 10px; }
+  .fab-map { top: calc(72px + env(safe-area-inset-top)); right: 10px; }
+
+  /* Botones redondos solo-móvil: speed-dial de utilidades y tema día/noche */
+  .fab-round {
+    display: flex; position: absolute; z-index: 1100; width: 42px; height: 42px;
+    align-items: center; justify-content: center; border-radius: 13px;
+    border: 1px solid var(--border-2); background: var(--float-bg); color: var(--text-hi);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.22); cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  .fab-utils { bottom: 34px; left: 8px; }
+  .fab-utils svg { transition: transform .25s ease; }
+  .fab-utils.open svg { transform: rotate(180deg); }
+  .fab-theme { bottom: 42px; right: 8px; }
+
+  /* Utilidades de mapa (navegación, fullscreen, GPS) → una sola tarjeta vertical
+     abajo-izquierda, encima del speed-dial; la rosa de los vientos queda suelta debajo */
+  .maplibregl-ctrl-top-right {
+    top: auto; right: auto; bottom: 86px; left: 8px;
+    display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+    --map-btn: clamp(38px, 9.5vw, 46px); /* botones cuadrados que autoescalan con el ancho */
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl { margin: 0; float: none; }
+
+  /* Colapso speed-dial: cerrados se deslizan hacia abajo y desvanecen; al abrir
+     suben en cascada desde el botón (el de más abajo primero) */
+  .maplibregl-ctrl-top-right .maplibregl-ctrl { transition: transform .28s ease, opacity .22s ease, visibility .28s; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl:nth-child(1) { transition-delay: .12s; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl:nth-child(2) { transition-delay: .08s; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl:nth-child(3) { transition-delay: .04s; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl:nth-child(4) { transition-delay: 0s; }
+  .utils-collapsed .maplibregl-ctrl-top-right .maplibregl-ctrl {
+    opacity: 0; transform: translateY(18px); visibility: hidden; pointer-events: none; transition-delay: 0s;
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:not(.compass-rose) {
+    background: var(--float-bg);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    border: 1px solid var(--border-2); border-top: 0; border-radius: 0; box-shadow: none;
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:not(.compass-rose):first-child {
+    border-top: 1px solid var(--border-2); border-radius: 12px 12px 0 0;
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:has(+ .compass-rose) {
+    border-radius: 0 0 12px 12px;
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group button {
+    width: var(--map-btn); height: var(--map-btn); border-radius: 0;
+  }
+  /* En tema oscuro los iconos nativos (SVG negros) se invierten para seguir visibles */
+  html[data-theme="dark"] .maplibregl-ctrl-top-right .maplibregl-ctrl-group:not(.compass-rose) button .maplibregl-ctrl-icon {
+    filter: invert(.88) hue-rotate(180deg);
+  }
+  .compass-rose { margin-top: 8px !important; border-radius: 50%; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.22); }
+
+  /* Zoom + atribución: chips en fila, pegados, abajo-derecha */
+  .maplibregl-ctrl-bottom-right {
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-end;
+    gap: 4px; padding: 0 8px 8px 0;
+  }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0; float: none; }
+  .zoom-indicator-box { padding: 0 9px; height: 24px; display: flex; align-items: center; font-size: 9px; border-radius: 10px; }
+  .maplibregl-ctrl-attrib { font-size: 9px; border-radius: 10px; }
+
+  .maplibregl-ctrl-bottom-left { z-index: 5; }
+}

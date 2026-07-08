@@ -1,0 +1,71 @@
+/* Design tokens (día/noche), reset y base de BCN Radar. */
+/* ═══ BCN Radar · Sistema visual v3 — "Mediterrani" ═══
+   Modernisme mediterráneo · roig BCN suau + secundario mar · serifa Spectral · esquinas de ola */
+:root {
+  /* ── Tema CLARO (por defecto) ── */
+  --bg: #E7ECEC;         /* bruma marina: fondo / huecos */
+  --surface: #FCFDFD;    /* paneles */
+  --surface-2: #EFF3F3;  /* superficies elevadas / inputs / celdas */
+  --surface-3: #E3EAE9;  /* hover */
+  --border: #DEE7E7;     /* hairlines */
+  --border-2: #CBD8D7;
+  --text-hi: #22303A;    /* titulares (tinta azulada) */
+  --text: #4E626E;       /* cuerpo */
+  --text-lo: #64757F;    /* secundario */
+  --text-mut: #8C9BA4;   /* muted */
+  --accent: #BC4B41;     /* roig BCN suau (ambos temas) */
+  --accent-ink: #A23A31; /* rojo legible sobre claro */
+  --carto: #2F6E8F;      /* azul mar mediterráneo: datos, enlaces, secundario */
+  --green: #3E8F73;
+  --amber: #BE9140;
+  --gold: #C29A4E;       /* dorado modernista: badges, detalles */
+  --red: #C06A4C;        /* terracota: alertas cálidas */
+  --display: 'Spectral', Georgia, 'Times New Roman', serif;
+  --sans: 'Figtree', system-ui, sans-serif;
+  --serif: 'Cormorant Garamond', Georgia, serif; /* itálicas decorativas */
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  /* firma: esquinas de ola (radios suaves modernistas) */
+  --r-card: 14px;   /* cards de sección */
+  --r-inner: 10px;  /* celdas, inputs, botones */
+  --r-pill: 999px;  /* píldoras / badges */
+  --chaflan: 8px;   /* legado (mapa) */
+  --float-bg: rgba(252,253,253,.92); /* paneles flotantes sobre el mapa */
+}
+/* ── Tema OSCURO (chrome + mapa) ── */
+html[data-theme="dark"] {
+  --float-bg: rgba(16,32,40,.92);
+  --bg: #0C161C;
+  --surface: #14232C;
+  --surface-2: #1B2E38;
+  --surface-3: #253945;
+  --border: #273A44;
+  --border-2: #354B56;
+  --text-hi: #EAF1EF;
+  --text: #BFCECC;
+  --text-lo: #8598A0;
+  --text-mut: #5E727B;
+  --accent: #CB6155;     /* roig suave, algo más luminoso sobre fondo profundo */
+  --accent-ink: #E08072;
+  --carto: #63A0C0;
+  --green: #58B091;
+  --amber: #D3AE5E;
+  --gold: #CFA85F;
+  --red: #CE8367;
+}
+.cerdanya { border-radius: var(--r-card); }
+
+/* ── Firma "esquinas de ola": redondeo suave de todo el chrome (mapa aparte) ── */
+.map-floating-controls, .capas-src, .ficha-grid, .ficha-reg, .ficha-check,
+.ver, .piu-clau, .piu-afec, .callout, .ficha-msg { border-radius: var(--r-card); }
+.ficha-mini, .ficha-doc, .ficha-link, .ficha-cta, .ficha-ref-value, .ficha-source,
+.src-chip, .ficha-badge, .ficha-grouptag, .capas-count, .stop-clear, .tr-search,
+.measure-clear, .panel-close, .empty-state .export-btn { border-radius: var(--r-inner); }
+.stop-chip, .tr-chip, .tr-mini, .mov-st, .clave-tag { border-radius: var(--r-pill); }
+.ficha-grid { overflow: hidden; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: var(--sans); height: 100vh; width: 100vw; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+::selection { background: var(--accent); color: #fff; }
+#app { height: 100%; }
+.app-container { display: flex; flex-direction: column; height: 100vh; }
+
