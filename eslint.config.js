@@ -17,11 +17,10 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
   skipFormatting,
   {
-    name: 'app/migracion-ts',
+    name: 'app/typescript-obligatorio',
     rules: {
-      // Migración a TS en curso: App.vue y algunos componentes siguen en JS mientras se
-      // componentizan. Reactivar (quitar esta línea) cuando todo el árbol esté en <script lang="ts">.
-      'vue/block-lang': 'off',
+      // Todo el árbol está en TypeScript: exige <script lang="ts"> en cada SFC.
+      'vue/block-lang': ['error', { script: { lang: 'ts' } }],
     },
   },
 )

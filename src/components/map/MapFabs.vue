@@ -2,8 +2,8 @@
 // Botones flotantes sobre el mapa: speed-dial de utilidades + tema (móvil) y los
 // botones para reabrir los paneles (info / capas) cuando están cerrados.
 // Estado 100% desde los composables singleton → sin props.
-import { usePanels } from '../../composables/usePanels.js'
-import { useTheme } from '../../composables/useTheme.js'
+import { usePanels } from '../../composables/usePanels'
+import { useTheme } from '../../composables/useTheme'
 
 const { sidebarOpen, controlsOpen, utilsOpen, openSidebar, openControls, toggleUtils } = usePanels()
 const { theme, toggleTheme } = useTheme()

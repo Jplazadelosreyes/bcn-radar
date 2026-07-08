@@ -4,10 +4,27 @@
 //  Añadir una fuente = añadir una entrada a WMS_SOURCES; el resto no cambia.
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref } from 'vue'
-import { useMapStore } from './useMapStore.js'
+import { useMapStore } from './useMapStore'
 import { describeLayer } from '../services/layer-info.js'
 
-export const WMS_SOURCES = [
+// ── Tipos del catálogo WMS ──
+export interface WmsLayer {
+  name: string
+  label: string
+  hint?: string
+}
+export interface WmsSource {
+  id: string
+  label: string
+  badge: string
+  attribution: string
+  base: string
+  version: string
+  portal: string
+  layers: WmsLayer[]
+}
+
+export const WMS_SOURCES: WmsSource[] = [
   {
     id: 'ajbcn-urb',
     label: 'Urbanismo · Ajuntament de Barcelona',
@@ -56,24 +73,24 @@ export const WMS_SOURCES = [
   },
 ]
 
-/** @type {import('vue').Ref<Record<string, boolean>>} */
-const wmsExpanded = ref({}) // sourceId -> acordeón de fuente abierto
-/** @type {import('vue').Ref<Record<string, boolean>>} */
-const wmsShowAll = ref({}) // sourceId -> sección "ver todas" abierta
-/** @type {import('vue').Ref<Record<string, boolean>>} */
-const wmsActive = ref({}) // layerKey -> capa encendida en el mapa
-/** @type {import('vue').Ref<Record<string, Array<{ name: string; label: string; desc?: string }>>>} */
-const wmsAllLayers = ref({}) // sourceId -> capas del GetCapabilities
-/** @type {import('vue').Ref<Record<string, 'loading' | 'ok' | 'error'>>} */
-const wmsAllStatus = ref({})
-const wmsAdded = new Set() // ids ya creados en el mapa (crea 1 vez, luego visibility)
+interface WmsAllLayer {
+  name: string
+  label: string
+  desc?: string
+}
+const wmsExpanded = ref<Record<string, boolean>>({}) // sourceId -> acordeón de fuente abierto
+const wmsShowAll = ref<Record<string, boolean>>({}) // sourceId -> sección "ver todas" abierta
+const wmsActive = ref<Record<string, boolean>>({}) // layerKey -> capa encendida en el mapa
+const wmsAllLayers = ref<Record<string, WmsAllLayer[]>>({}) // sourceId -> capas de GetCapabilities
+const wmsAllStatus = ref<Record<string, 'loading' | 'ok' | 'error'>>({})
+const wmsAdded = new Set<string>() // ids ya creados en el mapa (crea 1 vez, luego visibility)
 
 const fincasOn = ref(false) // parcelas del Catastro (capa raster)
 
-export const layerKey = (sid, name) => `${sid}::${name}`
+export const layerKey = (sid: string, name: string) => `${sid}::${name}`
 
 // URL de tiles WMS para MapLibre (raster). EPSG:3857 sin invertir ejes en 1.3.0.
-function wmsTileUrl(src, layerName) {
+function wmsTileUrl(src: WmsSource, layerName: string) {
   const crs = src.version === '1.3.0' ? 'crs' : 'srs'
   const p = new URLSearchParams({ service: 'WMS', request: 'GetMap', version: src.version, layers: layerName, styles: '', format: 'image/png', transparent: 'true', width: '256', height: '256' })
   return `${src.base}?${p.toString()}&${crs}=EPSG:3857&bbox={bbox-epsg-3857}`
@@ -82,7 +99,7 @@ function wmsTileUrl(src, layerName) {
 export function useLayers() {
   const { map: mapRef } = useMapStore()
 
-  const toggleWmsExpand = (sid) => { wmsExpanded.value = { ...wmsExpanded.value, [sid]: !wmsExpanded.value[sid] } }
+  const toggleWmsExpand = (sid: string) => { wmsExpanded.value = { ...wmsExpanded.value, [sid]: !wmsExpanded.value[sid] } }
 
   // Parcelas del Catastro: alterna la capa raster y acerca a nivel calle.
   function toggleFincas() {
@@ -94,7 +111,7 @@ export function useLayers() {
   }
 
   // Enciende/apaga una capa: la crea la primera vez, luego solo alterna visibilidad.
-  function toggleWms(src, layer) {
+  function toggleWms(src: WmsSource, layer: WmsLayer) {
     const map = mapRef.value
     if (!map) return
     const key = layerKey(src.id, layer.name)
@@ -111,7 +128,7 @@ export function useLayers() {
   }
 
   // "Ver todas": vuelca el catálogo completo del servicio (GetCapabilities), sin las curadas.
-  async function loadAllWms(src) {
+  async function loadAllWms(src: WmsSource) {
     wmsShowAll.value = { ...wmsShowAll.value, [src.id]: !wmsShowAll.value[src.id] }
     if (wmsAllLayers.value[src.id] || !wmsShowAll.value[src.id]) return
     wmsAllStatus.value = { ...wmsAllStatus.value, [src.id]: 'loading' }
@@ -119,18 +136,18 @@ export function useLayers() {
       const url = `${src.base}?service=WMS&request=GetCapabilities&version=${src.version}`
       const xml = new DOMParser().parseFromString(await (await fetch(url)).text(), 'text/xml')
       const curated = new Set(src.layers.map((l) => l.name))
-      const seen = new Set()
-      const all = []
+      const seen = new Set<string>()
+      const all: WmsAllLayer[] = []
       for (const ly of xml.getElementsByTagName('Layer')) {
-        let name = null
-        let title = null
+        let name: string | null = null
+        let title: string | null = null
         for (const c of ly.children) {
           if (c.tagName === 'Name' && name === null) name = c.textContent
           if (c.tagName === 'Title' && title === null) title = c.textContent
         }
         if (!name || curated.has(name) || seen.has(name)) continue
         seen.add(name)
-        all.push({ name, label: title || name, desc: describeLayer(name) })
+        all.push({ name, label: title || name, desc: describeLayer(name) as string })
       }
       wmsAllLayers.value = { ...wmsAllLayers.value, [src.id]: all }
       wmsAllStatus.value = { ...wmsAllStatus.value, [src.id]: 'ok' }

@@ -4,20 +4,22 @@
 //  El click-handler del mapa añade puntos vía addPoint mientras `measuring` está activo.
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref } from 'vue'
-import { useMapStore } from './useMapStore.js'
+import type { LngLat } from 'maplibre-gl'
+import { useMapStore } from './useMapStore'
 import { haversine } from '../services/overpass.js'
 
-/** @type {import('vue').Ref<string | null>} */
-const measureTotal = ref(null) // distancia acumulada, formateada
+const measureTotal = ref<string | null>(null) // distancia acumulada, formateada
 const measuring = ref(false)
-const points = [] // [[lng, lat], ...]
+const points: [number, number][] = [] // [[lng, lat], ...]
 
 export function useMeasure() {
   const { map: mapRef } = useMapStore()
 
   const render = () => {
     const map = mapRef.value
-    const feats = points.map((p) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p } }))
+    // features GeoJSON mixtas (puntos + línea) para la fuente 'measure' del mapa
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const feats: any[] = points.map((p) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p } }))
     if (points.length >= 2) feats.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: points } })
     const src = map?.getSource('measure')
     if (src) src.setData({ type: 'FeatureCollection', features: feats })
@@ -28,7 +30,7 @@ export function useMeasure() {
 
   const clear = () => { points.length = 0; render() }
 
-  const setMeasuring = (on) => {
+  const setMeasuring = (on: boolean) => {
     measuring.value = on
     const map = mapRef.value
     if (map) map.getCanvas().style.cursor = on ? 'crosshair' : ''
@@ -36,7 +38,7 @@ export function useMeasure() {
   }
 
   // Lo llama el click-handler del mapa (mientras `measuring`): añade un vértice.
-  const addPoint = (lngLat) => {
+  const addPoint = (lngLat: LngLat) => {
     points.push([lngLat.lng, lngLat.lat])
     render()
   }

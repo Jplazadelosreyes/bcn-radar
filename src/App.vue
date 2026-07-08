@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
-import { usePanels } from './composables/usePanels.js'
-import { useSheetDrag } from './composables/useSheetDrag.js'
-import { useMovilidad } from './composables/useMovilidad.js'
+import { usePanels } from './composables/usePanels'
+import { useSheetDrag } from './composables/useSheetDrag'
+import { useMovilidad } from './composables/useMovilidad'
 import TheTopbar from './components/TheTopbar.vue'
 import MapCanvas from './components/map/MapCanvas.vue'
 import MapFabs from './components/map/MapFabs.vue'
@@ -28,8 +28,8 @@ const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute,
 
 // Cards del sidebar: expansión INDEPENDIENTE (se pueden mezclar capas de varias:
 // metro + distritos, etc.). En móvil el sheet abre con todo colapsado (incremental).
-const cardOpen = ref(isMobile.value ? {} : { info: true }) // id -> abierta
-function toggleCard(id) { cardOpen.value = { ...cardOpen.value, [id]: !cardOpen.value[id] } }
+const cardOpen = ref<Record<string, boolean>>(isMobile.value ? {} : { info: true }) // id -> abierta
+function toggleCard(id: string) { cardOpen.value = { ...cardOpen.value, [id]: !cardOpen.value[id] } }
 watch(sidebarOpen, (open) => { if (open && isMobile.value) { cardOpen.value = {}; sheetFull.value = false } })
 </script>
 

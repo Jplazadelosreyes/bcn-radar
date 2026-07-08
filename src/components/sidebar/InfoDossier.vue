@@ -5,9 +5,9 @@
 // mapa: la lógica de fetch la dispara el setup del mapa y escribe los stores.
 import { computed } from 'vue'
 import SectionCard from './SectionCard.vue'
-import { useMapStore } from '../../composables/useMapStore.js'
-import { useFinca } from '../../composables/useFinca.js'
-import { useRadio } from '../../composables/useRadio.js'
+import { useMapStore } from '../../composables/useMapStore'
+import { useFinca } from '../../composables/useFinca'
+import { useRadio } from '../../composables/useRadio'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()

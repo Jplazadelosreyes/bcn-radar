@@ -2,7 +2,7 @@
 // Sección "Zonas administrativas": distritos / barrios / secciones + coropleta de renta.
 // Estado y lógica de mapa en el store useZones; el estado abierto/cerrado lo controla el padre.
 import SectionCard from './SectionCard.vue'
-import { useZones } from '../../composables/useZones.js'
+import { useZones } from '../../composables/useZones'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()

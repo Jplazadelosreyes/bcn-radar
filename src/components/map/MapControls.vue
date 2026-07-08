@@ -1,12 +1,12 @@
 <script setup lang="ts">
 // Panel flotante "Eines" (abajo-derecha): mapa base · vista 3D · herramientas (medir · radio).
 // Todo el estado viene de sus stores (useMapTools/useRadio/useFinca/useMeasure/usePanels) → SIN props.
-import { useMapTools } from '../../composables/useMapTools.js'
-import { usePanels } from '../../composables/usePanels.js'
-import { useSheetDrag } from '../../composables/useSheetDrag.js'
-import { useRadio } from '../../composables/useRadio.js'
-import { useFinca } from '../../composables/useFinca.js'
-import { useMeasure } from '../../composables/useMeasure.js'
+import { useMapTools } from '../../composables/useMapTools'
+import { usePanels } from '../../composables/usePanels'
+import { useSheetDrag } from '../../composables/useSheetDrag'
+import { useRadio } from '../../composables/useRadio'
+import { useFinca } from '../../composables/useFinca'
+import { useMeasure } from '../../composables/useMeasure'
 
 const { basemap, edificios3d, relieve3d, setBasemap, toggleEdificios3d, toggleRelieve3d } = useMapTools()
 const { controlsOpen } = usePanels()

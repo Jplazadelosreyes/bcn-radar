@@ -2,8 +2,8 @@
 // Barra superior: marca + búsqueda + interruptor de tema. Autocontenida y responsive.
 // En escritorio es una barra sólida; en móvil se convierte en cápsula flotante glass
 // sobre el mapa (el mapa es el protagonista, la UI flota encima).
-import { useTheme } from '../composables/useTheme.js'
-import { useSearch } from '../composables/useSearch.js'
+import { useTheme } from '../composables/useTheme'
+import { useSearch } from '../composables/useSearch'
 
 const { theme, toggleTheme } = useTheme()
 const { searchQuery, buscar } = useSearch()

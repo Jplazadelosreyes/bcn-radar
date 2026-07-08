@@ -9,21 +9,21 @@
 import { ref } from 'vue'
 
 const sheetFull = ref(false)
-let touchY = null
-let el = null
+let touchY: number | null = null
+let el: HTMLElement | null = null
 
-export function useSheetDrag(onCollapseAll) {
-  function start(e) {
+export function useSheetDrag(onCollapseAll?: () => void) {
+  function start(e: TouchEvent) {
     touchY = e.touches[0].clientY
-    el = e.currentTarget.closest('.sidebar, .map-floating-controls')
+    el = (e.currentTarget as HTMLElement).closest('.sidebar, .map-floating-controls')
     if (el) el.style.transition = 'none' // el sheet sigue al dedo sin lag
   }
-  function move(e) {
+  function move(e: TouchEvent) {
     if (touchY == null || !el) return
     const dy = e.touches[0].clientY - touchY
     el.style.transform = `translateY(${Math.max(dy, -70)}px)` // hacia arriba, con resistencia
   }
-  function end(e, close, expandable = false) {
+  function end(e: TouchEvent, close: () => void, expandable = false) {
     if (touchY == null) return
     const dy = e.changedTouches[0].clientY - touchY
     touchY = null

@@ -3,15 +3,40 @@
 //  parada unificado (GTFS + Overpass) con recorridos, y capas de datos abiertos (Bicing,
 //  carriles bici, POI, temperatura). Singleton. Patrón: estado/config a nivel de módulo;
 //  las funciones que tocan el mapa viven dentro de useMovilidad() y toman `map` local.
+//
+//  `any` a nivel de archivo: éste es el LÍMITE con dos APIs sin esquema tipado — las
+//  expresiones imperativas de MapLibre y las features crudas de Overpass/GTFS. El dominio
+//  (chips, paradas, líneas, capas) SÍ está tipado abajo; los `any` se acotan a esas fronteras.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref, computed } from 'vue'
 import maplibregl from 'maplibre-gl'
-import { useMapStore } from './useMapStore.js'
+import { useMapStore } from './useMapStore'
 import { overpassFetch } from '../services/overpass.js'
 import { loadPoi, poiFC } from '../services/poi.js'
 import { fetchBicing } from '../services/movilidad.js'
 import { fetchTemperatura } from '../services/meteo.js'
 import { loadTransit, stopsGeoJSON, routeGeoJSON, routeChip } from '../services/transit.js'
+
+// ── Tipos de dominio ──
+export interface TransportLine {
+  ref: string
+  colour: string
+}
+export interface StopChip {
+  id: string
+  short: string
+  long?: string
+  color: string
+  on?: boolean
+}
+export interface SelectedStop {
+  name: string
+  sub?: string
+  src: string // 'gtfs' | key de modo Overpass
+  chips: StopChip[]
+}
+type LoadStatus = 'loading' | 'ok' | 'error'
 
 // Modos de transporte (recorridos reales desde OpenStreetMap / Overpass).
 export const TRANSPORTES = [
@@ -22,34 +47,27 @@ export const TRANSPORTES = [
 ]
 const TRANSPORT_BBOX = '41.27,2.00,41.50,2.30' // S,W,N,E (BCN + área cercana)
 
-/** @type {import('vue').Ref<Record<string, 'loading' | 'ok' | 'error'>>} */
-const transportStatus = ref({})
-/** @type {import('vue').Ref<Record<string, Array<{ ref: string; colour: string }>>>} */
-const transportLines = ref({}) // key -> [{ ref, colour }]
-/** @type {import('vue').Ref<Record<string, string[]>>} */
-const transportSelected = ref({}) // key -> [refs visibles]
+const transportStatus = ref<Record<string, LoadStatus>>({})
+const transportLines = ref<Record<string, TransportLine[]>>({}) // key -> [{ ref, colour }]
+const transportSelected = ref<Record<string, string[]>>({}) // key -> [refs visibles]
 const busSearch = ref('')
 const busExpanded = ref(false) // lista completa de buses desplegada
 
 // ── Explorador de parada (GTFS TMB) ──
 const transitOn = ref(false)
 const transitStatus = ref('') // 'loading'|'ok'|'error'
-let transitData = null // JSON pre-procesado (no reactivo: es grande)
-/** @type {import('vue').Ref<{ name: string; sub?: string; src: string; chips: Array<any> } | null>} */
-const selectedStop = ref(null)
-/** @type {import('vue').Ref<string[]>} */
-const activeRouteIds = ref([]) // recorridos GTFS activos (multi-selección)
+let transitData: any = null // JSON pre-procesado (no reactivo: es grande)
+const selectedStop = ref<SelectedStop | null>(null)
+const activeRouteIds = ref<string[]>([]) // recorridos GTFS activos (multi-selección)
 
 // ── Capas de datos abiertos ──
-/** @type {import('vue').Ref<Record<string, boolean>>} */
-const dataActive = ref({})
-/** @type {import('vue').Ref<Record<string, 'loading' | 'ok' | 'error'>>} */
-const dataStatus = ref({})
-const dataTimers = {} // layerId -> intervalo de refresco (capas en vivo)
+const dataActive = ref<Record<string, boolean>>({})
+const dataStatus = ref<Record<string, LoadStatus>>({})
+const dataTimers: Record<string, ReturnType<typeof setInterval>> = {} // layerId -> refresco (vivo)
 const poiDate = ref('')
 
 // Chips a renderizar por modo (bus: al buscar o la lista completa si se expande).
-const chipsFor = (key) => {
+const chipsFor = (key: string): TransportLine[] => {
   const all = transportLines.value[key] || []
   if (key !== 'bus') return all
   const q = busSearch.value.trim().toLowerCase()
@@ -58,13 +76,13 @@ const chipsFor = (key) => {
 }
 
 // ¿El modo Overpass tiene una selección curada (subset) o muestra todas sus líneas?
-const isCurated = (src) => {
+const isCurated = (src: string): boolean => {
   const sel = transportSelected.value[src] || []
   const all = transportLines.value[src] || []
   return sel.length > 0 && sel.length < all.length
 }
 // Chip encendido: GTFS por recorrido activo; Overpass por membresía (solo si hay curado).
-function isChipOn(chip) {
+function isChipOn(chip: StopChip): boolean {
   const src = selectedStop.value?.src
   if (!src || src === 'gtfs') return activeRouteIds.value.includes(chip.id)
   return isCurated(src) && (transportSelected.value[src] || []).includes(chip.id)
@@ -75,27 +93,35 @@ const stopHasSelection = computed(() => {
   return src === 'gtfs' ? activeRouteIds.value.length > 0 : isCurated(src)
 })
 // Chips ya anotados con `on` para StopExplorer (presentacional).
-const stopChipsView = computed(() => (selectedStop.value?.chips || []).map((c) => ({ ...c, on: isChipOn(c) })))
+const stopChipsView = computed<StopChip[]>(() =>
+  (selectedStop.value?.chips || []).map((c) => ({ ...c, on: isChipOn(c) })),
+)
 
 // ── Catálogo declarativo de capas de datos abiertos ──
 const CYCLEWAY_QUERY = '[out:json][timeout:60];way[highway=cycleway](41.30,2.05,41.48,2.25);out geom;'
 async function loadCarrilBici() {
   const d = await overpassFetch(CYCLEWAY_QUERY)
   const features = (d.elements || [])
-    .filter((e) => e.type === 'way' && e.geometry)
-    .map((w) => ({
+    .filter((e: any) => e.type === 'way' && e.geometry)
+    .map((w: any) => ({
       type: 'Feature',
       properties: { name: w.tags?.name || '' },
-      geometry: { type: 'LineString', coordinates: w.geometry.map((g) => [g.lon, g.lat]) },
+      geometry: { type: 'LineString', coordinates: w.geometry.map((g: any) => [g.lon, g.lat]) },
     }))
   return { type: 'FeatureCollection', features }
 }
-async function poiCategory(cat) {
+async function poiCategory(cat: string) {
   const d = await loadPoi()
   poiDate.value = d.generated || ''
   return poiFC(d, cat)
 }
-const poiLayer = (id, label, hint, color, minzoom = 13) => ({
+const poiLayer = (
+  id: string,
+  label: string,
+  hint: string,
+  color: string,
+  minzoom = 13,
+): MovLayer => ({
   id, label, hint, minzoom,
   load: () => poiCategory(id),
   paint: {
@@ -105,22 +131,20 @@ const poiLayer = (id, label, hint, color, minzoom = 13) => ({
   popup: (p) => `<b>${p.name || '(sin nombre)'}</b>${p.kind ? `<br><span style="color:#5B616B">${p.kind}</span>` : ''}`,
 })
 
-/**
- * @typedef {Object} MovLayer
- * @property {string} id
- * @property {string} label
- * @property {string} hint
- * @property {string} [portal]
- * @property {number} [live]
- * @property {string} [layerType]
- * @property {number} [minzoom]
- * @property {() => Promise<any>} load
- * @property {any} paint
- * @property {any} [symbol]
- * @property {(p: any) => string} [popup]
- */
-/** @type {Array<{ group: string; layers: MovLayer[] }>} */
-export const MOVILIDAD = [
+export interface MovLayer {
+  id: string
+  label: string
+  hint: string
+  portal?: string
+  live?: number
+  layerType?: string
+  minzoom?: number
+  load: () => Promise<any>
+  paint: any
+  symbol?: any
+  popup?: (p: any) => string
+}
+export const MOVILIDAD: Array<{ group: string; layers: MovLayer[] }> = [
   {
     group: '🚲 Bicicleta',
     layers: [
@@ -188,7 +212,7 @@ export function useMovilidad() {
   const { map: mapRef, overlayClickLayers, stopLayerIds } = useMapStore()
 
   // Aplica el filtro de líneas seleccionadas a línea + paradas + etiquetas del modo.
-  const applyLineFilter = (key) => {
+  const applyLineFilter = (key: string) => {
     const map = mapRef.value
     if (!map) return
     const sel = transportSelected.value[key] || []
@@ -205,9 +229,9 @@ export function useMovilidad() {
   }
 
   // Selección masiva: Todas/Ninguna (en bus con búsqueda, solo sobre lo filtrado).
-  const setAllLines = (key, on) => {
+  const setAllLines = (key: string, on: boolean) => {
     const all = transportLines.value[key] || []
-    let next
+    let next: string[]
     if (key === 'bus' && busSearch.value.trim()) {
       const shown = new Set(chipsFor(key).map((l) => l.ref))
       const cur = new Set(transportSelected.value[key] || [])
@@ -219,7 +243,7 @@ export function useMovilidad() {
     transportSelected.value = { ...transportSelected.value, [key]: next }
     applyLineFilter(key)
   }
-  const toggleLine = (key, ref) => {
+  const toggleLine = (key: string, ref: string) => {
     const cur = transportSelected.value[key] || []
     const next = cur.includes(ref) ? cur.filter((r) => r !== ref) : [...cur, ref]
     transportSelected.value = { ...transportSelected.value, [key]: next }
@@ -227,7 +251,7 @@ export function useMovilidad() {
   }
 
   // Enciende/apaga una capa de datos: la carga la 1ª vez (lazy), luego alterna visibilidad.
-  async function toggleData(cfg) {
+  async function toggleData(cfg: MovLayer) {
     const map = mapRef.value
     if (!map) return
     const on = !dataActive.value[cfg.id]
@@ -256,8 +280,8 @@ export function useMovilidad() {
         }
         overlayClickLayers.push(id) // su clic muestra popup, no selecciona finca
         if (cfg.popup) {
-          map.on('click', id, (e) => {
-            new maplibregl.Popup({ offset: 12 }).setLngLat(e.lngLat).setHTML(cfg.popup(e.features[0].properties)).addTo(map)
+          map.on('click', id, (e: any) => {
+            new maplibregl.Popup({ offset: 12 }).setLngLat(e.lngLat).setHTML(cfg.popup!(e.features[0].properties)).addTo(map)
           })
           map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer' })
           map.on('mouseleave', id, () => { map.getCanvas().style.cursor = '' })
@@ -293,7 +317,7 @@ export function useMovilidad() {
       paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 3, 16, 6], 'circle-color': '#fff', 'circle-stroke-color': ['coalesce', ['get', 'color'], '#2D5BD0'], 'circle-stroke-width': 2.5 },
     })
     overlayClickLayers.push('transit-route-stops')
-    map.on('click', 'transit-route-stops', (e) => {
+    map.on('click', 'transit-route-stops', (e: any) => {
       new maplibregl.Popup({ offset: 10 }).setLngLat(e.lngLat).setHTML(`<b>${e.features[0].properties.name}</b>`).addTo(map)
     })
     map.on('mouseenter', 'transit-route-stops', () => { map.getCanvas().style.cursor = 'pointer' })
@@ -304,19 +328,19 @@ export function useMovilidad() {
   function renderRoutes() {
     const map = mapRef.value
     ensureRouteLayers()
-    const lineFeats = []
-    const stopFeats = []
+    const lineFeats: any[] = []
+    const stopFeats: any[] = []
     for (const rid of activeRouteIds.value) {
       const g = routeGeoJSON(transitData, rid)
       if (!g) continue
-      g.lines.features.forEach((f) => { f.properties = { ...(f.properties || {}), color: g.color }; lineFeats.push(f) })
-      g.stops.features.forEach((f) => { f.properties = { ...(f.properties || {}), color: g.color }; stopFeats.push(f) })
+      g.lines.features.forEach((f: any) => { f.properties = { ...(f.properties || {}), color: g.color }; lineFeats.push(f) })
+      g.stops.features.forEach((f: any) => { f.properties = { ...(f.properties || {}), color: g.color }; stopFeats.push(f) })
     }
     map.getSource('transit-route-line').setData({ type: 'FeatureCollection', features: lineFeats })
     map.getSource('transit-route-stops').setData({ type: 'FeatureCollection', features: stopFeats })
   }
 
-  function chooseRoute(routeId) {
+  function chooseRoute(routeId: string) {
     const map = mapRef.value
     if (!map || !transitData) return
     const cur = activeRouteIds.value
@@ -332,12 +356,12 @@ export function useMovilidad() {
   }
 
   // Chip del explorador: GTFS acumula recorridos; Overpass cura el filtro línea a línea.
-  function pickStopLine(chip) {
+  function pickStopLine(chip: StopChip) {
     const src = selectedStop.value?.src
     if (!src || src === 'gtfs') { chooseRoute(chip.id); return }
     const all = (transportLines.value[src] || []).map((l) => l.ref)
     const cur = transportSelected.value[src] || []
-    let next
+    let next: string[]
     if (!isCurated(src)) next = [chip.id]
     else if (cur.includes(chip.id)) { next = cur.filter((r) => r !== chip.id); if (!next.length) next = all }
     else next = [...cur, chip.id]
@@ -377,11 +401,11 @@ export function useMovilidad() {
         paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 5], 'circle-color': '#2D5BD0', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 },
       })
       overlayClickLayers.push('transit-stops')
-      map.on('click', 'transit-stops', (e) => {
+      map.on('click', 'transit-stops', (e: any) => {
         const id = e.features[0].properties.id
-        const s = transitData.stops.find((x) => x.id === id)
+        const s = transitData.stops.find((x: any) => x.id === id)
         if (!s) return
-        selectedStop.value = { name: s.name, src: 'gtfs', chips: s.routes.map((rid) => routeChip(transitData, rid)) }
+        selectedStop.value = { name: s.name, src: 'gtfs', chips: s.routes.map((rid: any) => routeChip(transitData, rid)) }
       })
       map.on('mouseenter', 'transit-stops', () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', 'transit-stops', () => { map.getCanvas().style.cursor = '' })
@@ -394,7 +418,7 @@ export function useMovilidad() {
   }
 
   // Líneas por modo (Overpass): relaciones con geometría + nodos de parada.
-  async function loadTransport(cfg, visible) {
+  async function loadTransport(cfg: (typeof TRANSPORTES)[number], visible: boolean) {
     const map = mapRef.value
     if (!map) return
     const srcId = `tr-${cfg.key}`
@@ -408,26 +432,26 @@ export function useMovilidad() {
     try {
       const q = `[out:json][timeout:120];relation${cfg.filter}(${TRANSPORT_BBOX})->.routes;.routes out geom;node(r.routes);out;`
       const data = await overpassFetch(q)
-      const elements = data.elements || []
-      const stopLines = {} // nodeId -> Set de etiquetas de línea
-      const linesMap = {} // ref de línea -> colour
+      const elements: any[] = data.elements || []
+      const stopLines: Record<string, Set<string>> = {} // nodeId -> Set de etiquetas de línea
+      const linesMap: Record<string, string> = {} // ref de línea -> colour
       const lineFeatures = elements
         .filter((el) => el.type === 'relation' && el.members)
         .map((rel) => {
           const lineId = rel.tags?.ref || rel.tags?.name || ''
           if (lineId && !(lineId in linesMap)) linesMap[lineId] = rel.tags?.colour || cfg.color
           rel.members
-            .filter((m) => m.type === 'node' && /stop|platform/.test(m.role || ''))
-            .forEach((m) => { (stopLines[m.ref] ||= new Set()).add(lineId) })
-          const lines = rel.members.filter((m) => m.type === 'way' && m.geometry).map((m) => m.geometry.map((g) => [g.lon, g.lat]))
+            .filter((m: any) => m.type === 'node' && /stop|platform/.test(m.role || ''))
+            .forEach((m: any) => { (stopLines[m.ref] ||= new Set()).add(lineId) })
+          const lines = rel.members.filter((m: any) => m.type === 'way' && m.geometry).map((m: any) => m.geometry.map((g: any) => [g.lon, g.lat]))
           return { type: 'Feature', properties: { ref: lineId, colour: rel.tags?.colour || null }, geometry: { type: 'MultiLineString', coordinates: lines } }
         })
         .filter((f) => f.geometry.coordinates.length)
-      const byName = {}
+      const byName: Record<string, { coord: number[]; lines: Set<string> }> = {}
       elements
         .filter((el) => el.type === 'node' && el.tags?.name)
         .forEach((n) => {
-          const lset = stopLines[n.id] ? [...stopLines[n.id]] : (n.tags.route_ref ? n.tags.route_ref.split(/[;,]/) : [])
+          const lset: string[] = stopLines[n.id] ? [...stopLines[n.id]] : (n.tags.route_ref ? n.tags.route_ref.split(/[;,]/) : [])
           if (!byName[n.tags.name]) byName[n.tags.name] = { coord: [n.lon, n.lat], lines: new Set() }
           lset.map((l) => l.trim()).filter(Boolean).forEach((l) => byName[n.tags.name].lines.add(l))
         })
@@ -458,13 +482,13 @@ export function useMovilidad() {
       })
       stopLayerIds.push(`${srcId}-stops`)
 
-      map.on('click', `${srcId}-stops`, (e) => {
+      map.on('click', `${srcId}-stops`, (e: any) => {
         const p = e.features[0].properties
-        let refs = []
+        let refs: string[] = []
         try { refs = JSON.parse(p.linesArr || '[]') } catch { refs = (p.lines || '').split(/,\s*/).filter(Boolean) }
         if (!refs.length && p.lines) refs = String(p.lines).split(/,\s*/).filter(Boolean)
         const catalog = transportLines.value[cfg.key] || []
-        const chips = refs
+        const chips: StopChip[] = refs
           .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
           .map((ref) => ({ id: ref, short: ref, long: `${cfg.label} ${ref}`, color: catalog.find((l) => l.ref === ref)?.colour || cfg.color }))
         selectedStop.value = { name: p.name, sub: p.modo, src: cfg.key, chips }
@@ -472,7 +496,7 @@ export function useMovilidad() {
       map.on('mouseenter', `${srcId}-stops`, () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', `${srcId}-stops`, () => { map.getCanvas().style.cursor = '' })
 
-      const lineList = Object.entries(linesMap)
+      const lineList: TransportLine[] = Object.entries(linesMap)
         .map(([ref, colour]) => ({ ref, colour }))
         .sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }))
       transportLines.value = { ...transportLines.value, [cfg.key]: lineList }

@@ -5,9 +5,10 @@
 //  (radio y medir se sumarán aquí en los siguientes incrementos.)
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref } from 'vue'
-import { useMapStore } from './useMapStore.js'
+import { useMapStore } from './useMapStore'
 
-const basemap = ref('calle')   // 'calle' | 'satelite' | 'orto-icgc' | 'relieve'
+type Basemap = 'calle' | 'satelite' | 'orto-icgc' | 'relieve'
+const basemap = ref<Basemap>('calle')
 const edificios3d = ref(false)
 const relieve3d = ref(false)
 
@@ -16,11 +17,11 @@ export function useMapTools() {
 
   // Mapa base: alterna la visibilidad de las capas raster (satélite/orto/relieve);
   // 'calle' = ninguna → se ve el vectorial recoloreado por el tema.
-  function setBasemap(val) {
+  function setBasemap(val: Basemap) {
     basemap.value = val
     const m = map.value
     if (!m) return
-    const bases = { satelite: 'satellite', 'orto-icgc': 'icgc-orto', relieve: 'topo' }
+    const bases: Record<string, string> = { satelite: 'satellite', 'orto-icgc': 'icgc-orto', relieve: 'topo' }
     for (const [v, id] of Object.entries(bases)) {
       if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', val === v ? 'visible' : 'none')
     }

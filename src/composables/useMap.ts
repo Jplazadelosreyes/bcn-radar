@@ -1,13 +1,18 @@
 // useMap — instancia única del mapa MapLibre (singleton de módulo).
 // Toda la app comparte este mapa: createMap() lo construye una vez (onMounted de App)
 // y getMap() lo entrega a cualquier componente/composable que lo necesite.
+//
+//  `any` acotado: frontera con MapLibre (controles nativos, LngLatBoundsLike).
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import maplibregl from 'maplibre-gl'
 
-let map = null
+let map: any = null
 
 // Indicador de zoom como control nativo de MapLibre (abreviado en móvil: "z11")
 class ZoomIndicatorControl {
-  onAdd(m) {
+  _map?: any
+  _box!: HTMLElement
+  onAdd(m: any) {
     this._map = m
     this._box = document.createElement('div')
     this._box.className = 'maplibregl-ctrl zoom-indicator-box'
@@ -24,7 +29,10 @@ class ZoomIndicatorControl {
 
 // Rosa de los vientos: gira con la orientación; clic = volver al norte y aplanar
 class CompassRoseControl {
-  onAdd(m) {
+  _map?: any
+  _box!: HTMLElement
+  _dial!: HTMLElement
+  onAdd(m: any) {
     this._map = m
     this._box = document.createElement('div')
     this._box.className = 'maplibregl-ctrl maplibregl-ctrl-group compass-rose'
@@ -41,7 +49,7 @@ class CompassRoseControl {
           <text x="6" y="26.5" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">O</text>
         </g>
       </svg>`
-    this._dial = this._box.querySelector('.compass-dial')
+    this._dial = this._box.querySelector('.compass-dial') as HTMLElement
     this._box.addEventListener('click', () => m.easeTo({ bearing: 0, pitch: 0, duration: 500 }))
     const rotate = () => { this._dial.style.transform = `rotate(${-m.getBearing()}deg)` }
     m.on('rotate', rotate); rotate()
@@ -53,7 +61,7 @@ class CompassRoseControl {
 // Construye el mapa con sus controles nativos y gestos 3D. Llamar UNA vez.
 export function createMap(container = 'map') {
   // Límites con holgura alrededor de Barcelona (la máscara mantiene el foco visual)
-  const bcnBounds = [[1.9600, 41.2600], [2.3600, 41.5200]] // [SW],[NE] en lng,lat
+  const bcnBounds: [[number, number], [number, number]] = [[1.9600, 41.2600], [2.3600, 41.5200]] // [SW],[NE]
 
   // Motor MapLibre GL (open source) + basemap vectorial OpenFreeMap (sin API key)
   map = new maplibregl.Map({
@@ -77,7 +85,7 @@ export function createMap(container = 'map') {
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true,
-  }), 'top-right')
+  } as any), 'top-right')
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
   map.addControl(new ZoomIndicatorControl(), 'bottom-right')
   map.addControl(new CompassRoseControl(), 'top-right')

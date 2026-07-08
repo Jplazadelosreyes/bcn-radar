@@ -7,21 +7,20 @@
 import { ref, computed } from 'vue'
 import { classificLabel } from '../services/piu.js'
 
-/**
- * @typedef {Object} FincaData
- * @property {'vacio'|'cargando'|'ok'|'sin-parcela'|'error'} estado
- * @property {string|null} refCatastral
- * @property {string|null} rcInmueble
- * @property {number|null} ano
- * @property {number|null} superficie
- * @property {string|null} uso
- * @property {number|null} coefParticipacion
- * @property {number|null} nInmuebles
- * @property {number|null} plantas
- */
+export type FincaEstado = 'vacio' | 'cargando' | 'ok' | 'sin-parcela' | 'error'
+export interface FincaData {
+  estado: FincaEstado
+  refCatastral: string | null
+  rcInmueble: string | null
+  ano: number | null
+  superficie: number | null
+  uso: string | null
+  coefParticipacion: number | null
+  nInmuebles: number | null
+  plantas: number | null
+}
 
-/** @type {import('vue').Ref<FincaData>} */
-const fincaData = ref({
+const fincaData = ref<FincaData>({
   estado: 'vacio',
   refCatastral: null,
   rcInmueble: null,
@@ -33,15 +32,13 @@ const fincaData = ref({
   plantas: null,
 })
 
-/** @type {import('vue').Ref<{ lat: number; lng: number } | null>} */
-const clickedCoords = ref(null) // coords del último clic (miniatura satélite + centro del radio)
-/** @type {import('vue').Ref<string | null>} */
-const selectedAddress = ref(null) // dirección legible de la finca (búsqueda / clic)
+const clickedCoords = ref<{ lat: number; lng: number } | null>(null) // último clic (miniatura + centro del radio)
+const selectedAddress = ref<string | null>(null) // dirección legible de la finca (búsqueda / clic)
 
-/** @type {import('vue').Ref<Record<string, any>>} PIU · GetFeatureInfo: { estado, qualificacio?, suspensions?, tramits?, aprovats?, gestions? } */
-const afectaciones = ref({ estado: 'vacio' }) // 'vacio'|'cargando'|'ok'|'error'
-/** @type {import('vue').Ref<{ renda: number; any: string | number; contratos: number } | null>} */
-const valorZona = ref(null) // valor de mercado de zona (Incasòl)
+// PIU · GetFeatureInfo: { estado, qualificacio?, suspensions?, tramits?, aprovats?, gestions? }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const afectaciones = ref<Record<string, any>>({ estado: 'vacio' }) // 'vacio'|'cargando'|'ok'|'error'
+const valorZona = ref<{ renda: number; any: string | number; contratos: number } | null>(null) // valor de zona (Incasòl)
 
 const classific = classificLabel
 
@@ -85,11 +82,13 @@ const veredictos = computed(() => {
       v.push({ tone: 'red', titulo: `Uso catastral: ${f.uso} (no residencial)`, desc: 'Verifica que tenga cédula de habitabilidad para vivienda antes de plantear vivir, empadronarte o hipotecarlo como hogar.' })
     }
   }
-  if (f.coefParticipacion > 0 && f.coefParticipacion <= 100 && f.nInmuebles > 1) {
-    const derrama = Math.round((100000 * f.coefParticipacion) / 100)
-    v.push({ tone: 'blue', titulo: `Tu cuota en la comunidad: ${f.coefParticipacion}%`, desc: `Es tu parte en gastos comunes y derramas. Una derrama de 100.000 € de la finca = ~${derrama.toLocaleString('es-ES')} € para ti.` })
+  const coef = f.coefParticipacion ?? 0
+  const nInm = f.nInmuebles ?? 0
+  if (coef > 0 && coef <= 100 && nInm > 1) {
+    const derrama = Math.round((100000 * coef) / 100)
+    v.push({ tone: 'blue', titulo: `Tu cuota en la comunidad: ${coef}%`, desc: `Es tu parte en gastos comunes y derramas. Una derrama de 100.000 € de la finca = ~${derrama.toLocaleString('es-ES')} € para ti.` })
   }
-  if (f.nInmuebles > 1) {
+  if (nInm > 1) {
     v.push({ tone: 'blue', titulo: `Finca plurifamiliar · ${f.nInmuebles} inmuebles`, desc: 'Hay comunidad de propietarios activa. Pide actas y el estado de derramas aprobadas (Art. 9 LPH) antes de firmar.' })
   }
   return v
@@ -129,7 +128,7 @@ const zonaLinks = {
 }
 
 // Copiar al portapapeles (referencias catastrales)
-const copiar = (texto) => {
+const copiar = (texto: string | null) => {
   if (texto && navigator.clipboard) navigator.clipboard.writeText(texto)
 }
 

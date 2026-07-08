@@ -7,13 +7,17 @@
 // SOLO guía visual: sin relleno de captura ni hover — si el usuario trabaja con otra
 // capa (metro, bicing…) estos contornos no reaccionan ni interfieren. El hover vive
 // en las zonas manuales (card Zonas), y es interacción de escritorio (fase PC).
-import { watch } from 'vue'
+//
+//  `any` acotado: frontera con MapLibre (expresiones de estilo) y GeoJSON crudo remoto.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { watch, type Ref } from 'vue'
 import { loadZones } from '../services/zones.js'
+import type { MapContext } from './useMapStore'
 
-const LEVEL_ZONE = { distrito: 'districtes', barrio: 'barris', seccion: 'seccions' }
+const LEVEL_ZONE: Record<string, string> = { distrito: 'districtes', barrio: 'barris', seccion: 'seccions' }
 
 // Misma paleta que las zonas manuales, pero en volumen bajo (la manual siempre gana)
-const SOFT = {
+const SOFT: Record<string, any> = {
   districtes: {
     color: '#8B1E3F', width: 1.6, dash: [1, 0], size: 12, minzoom: 0,
     label: ['get', 'NOM'], upper: 'uppercase', spacing: 0.08,
@@ -28,12 +32,12 @@ const SOFT = {
   },
 }
 
-let map = null
-const creating = {} // zona -> promesa de creación (evita carreras al cambiar rápido de nivel)
+let map: any = null
+const creating: Record<string, Promise<void> | undefined> = {} // zona -> promesa (evita carreras)
 
-const zoneLayerIds = (z) => [`auto-${z}-line`, `auto-${z}-label`]
+const zoneLayerIds = (z: string) => [`auto-${z}-line`, `auto-${z}-label`]
 
-function setVis(ids, on) {
+function setVis(ids: string[], on: boolean) {
   ids.forEach((id) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'))
 }
 
@@ -42,11 +46,11 @@ async function ensureCity() {
   if (creating.city) return creating.city
   creating.city = (async () => {
     const geo = await fetch('https://raw.githubusercontent.com/martgnz/bcn-geodata/master/terme-municipal/terme-municipal.geojson').then((r) => r.json())
-    const rings = []
+    const rings: any[] = []
     for (const feat of geo.features) {
       const g = feat.geometry
       if (g.type === 'Polygon') rings.push(g.coordinates[0])
-      else if (g.type === 'MultiPolygon') g.coordinates.forEach((poly) => rings.push(poly[0]))
+      else if (g.type === 'MultiPolygon') g.coordinates.forEach((poly: any) => rings.push(poly[0]))
     }
     map.addSource('auto-city', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: rings } } })
     map.addLayer({
@@ -59,7 +63,7 @@ async function ensureCity() {
 }
 
 // Zonas de un nivel: línea suave y etiqueta discreta (sin relleno: no captura eventos)
-async function ensureZone(zone) {
+async function ensureZone(zone: string) {
   if (creating[zone]) return creating[zone]
   creating[zone] = (async () => {
     const gj = await loadZones(zone)
@@ -88,7 +92,7 @@ async function ensureZone(zone) {
 const AUTO_ZONE_LEVELS = false
 
 // Nivel → qué contorno se ve (los demás se apagan)
-async function apply(level) {
+async function apply(level: string) {
   if (level === 'ciudad') await ensureCity()
   if (map.getLayer('auto-city-line')) setVis(['auto-city-line'], level === 'ciudad')
   if (!AUTO_ZONE_LEVELS) return
@@ -97,7 +101,7 @@ async function apply(level) {
 }
 
 // Punto de entrada: llamar una vez tras crear el mapa
-export function initAutoZones(m, mapContext) {
+export function initAutoZones(m: any, mapContext: Ref<MapContext>) {
   map = m
   const run = () => apply(mapContext.value.level).catch((e) => console.warn('auto-zonas', e))
   if (map.loaded()) run(); else map.once('load', run)

@@ -2,22 +2,12 @@
 // Explorador de parada (presentacional): muestra las líneas que pasan por la parada
 // seleccionada y emite la acción; el dibujo del recorrido lo maneja el padre por ahora.
 // `chips` viene ya anotado con `on` (línea activa) para no depender de la lógica del padre.
-export interface StopChip {
-  id: string | number
-  short: string
-  long?: string
-  color: string
-  on?: boolean
-}
-export interface Stop {
-  name: string
-  sub?: string
-  chips: StopChip[]
-}
+// Tipos del dominio (fuente única en el store de movilidad); este componente solo pinta.
+import type { StopChip, SelectedStop } from '../../composables/useMovilidad'
 
 withDefaults(
   defineProps<{
-    stop?: Stop | null
+    stop?: SelectedStop | null
     chips?: StopChip[]
     hasSelection?: boolean
   }>(),

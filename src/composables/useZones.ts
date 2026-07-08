@@ -1,24 +1,25 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 //  useZones — capa de zonas administrativas (distritos / barrios / secciones) + la
 //  coropleta de renta media. Estado + acciones que manipulan el mapa. Singleton.
+//
+//  `any` acotado: frontera con MapLibre (expresiones de estilo, feature-state, features).
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref } from 'vue'
 import maplibregl from 'maplibre-gl'
-import { useMapStore } from './useMapStore.js'
+import { useMapStore } from './useMapStore'
 import { loadZones } from '../services/zones.js'
 import { loadRentaGeoJSON } from '../services/renta.js'
 
-/** @type {import('vue').Ref<Record<string, boolean>>} */
-const zoneOn = ref({}) // level -> visible
-/** @type {import('vue').Ref<Record<string, 'loading' | 'error' | 'ok'>>} */
-const zoneStatus = ref({}) // level -> 'loading' | 'error' | 'ok'
-const zoneSel = {} // source -> id de la zona seleccionada (feature-state)
+const zoneOn = ref<Record<string, boolean>>({}) // level -> visible
+const zoneStatus = ref<Record<string, 'loading' | 'error' | 'ok'>>({}) // level -> estado
+const zoneSel: Record<string, string | number | null> = {} // source -> zona seleccionada (feature-state)
 
 const rentaOn = ref(false)
 const rentaStatus = ref('')
 const rentaAny = ref('')
 
-const ZONE_STYLE = {
+const ZONE_STYLE: Record<string, any> = {
   districtes: { color: '#8B1E3F', width: 3.6, dash: [1, 0], size: 13, upper: 'uppercase', spacing: 0.08, labelMinzoom: 0 },
   barris: { color: '#2D5BD0', width: 2.2, dash: [4, 2], size: 10, upper: 'none', spacing: 0, labelMinzoom: 12 },
   seccions: { color: '#6B7689', width: 1.1, dash: [3, 2], size: 8, upper: 'none', spacing: 0, labelMinzoom: 15 },
@@ -27,7 +28,7 @@ const ZONE_STYLE = {
 export function useZones() {
   const { map: mapRef, overlayClickLayers } = useMapStore()
 
-  async function toggleZone(level) {
+  async function toggleZone(level: string) {
     const map = mapRef.value
     if (!map) return
     const on = !zoneOn.value[level]
@@ -63,7 +64,7 @@ export function useZones() {
         paint: { 'text-color': ST.color, 'text-halo-color': '#fff', 'text-halo-width': 1.8 },
       })
       // Clic en una zona → la selecciona (resalta) y muestra su nombre; volver a clicar deselecciona
-      map.on('click', `${src}-fill`, (e) => {
+      map.on('click', `${src}-fill`, (e: any) => {
         const f = e.features[0]
         const prev = zoneSel[src]
         if (prev != null) map.setFeatureState({ source: src, id: prev }, { sel: false })
@@ -116,7 +117,7 @@ export function useZones() {
       })
       map.addLayer({ id: 'renta-line', type: 'line', source: 'renta', paint: { 'line-color': '#ffffff', 'line-width': 0.4, 'line-opacity': 0.35 } })
       overlayClickLayers.push('renta-fill')
-      map.on('click', 'renta-fill', (e) => {
+      map.on('click', 'renta-fill', (e: any) => {
         const p = e.features[0].properties
         if (p.renta == null) return
         new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(`<b>${p.NOM || 'Sección'} · ${p.DISTRICTE}-${p.SEC_CENS}</b><br><span style="color:#5B616B">Renta media: ${(+p.renta).toLocaleString('es-ES')} €/año</span>`).addTo(map)

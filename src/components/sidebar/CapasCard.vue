@@ -2,7 +2,7 @@
 // Sección "Capas del mapa": parcelas del Catastro + agregador WMS público
 // (urbanismo Ajuntament, MUC, inundabilidad ACA). Lógica en el store useLayers.
 import SectionCard from './SectionCard.vue'
-import { useLayers } from '../../composables/useLayers.js'
+import { useLayers } from '../../composables/useLayers'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()

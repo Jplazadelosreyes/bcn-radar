@@ -2,7 +2,7 @@
 // Sección "Movilidad y servicios": explorador de parada (GTFS), líneas por modo (Overpass)
 // y capas de datos abiertos (Bicing, POI, temperatura). Lógica en el store useMovilidad.
 import SectionCard from './SectionCard.vue'
-import { useMovilidad } from '../../composables/useMovilidad.js'
+import { useMovilidad } from '../../composables/useMovilidad'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()
