@@ -22,6 +22,7 @@ import MovilidadCard from './components/sidebar/MovilidadCard.vue'
 import InfoDossier from './components/sidebar/InfoDossier.vue'
 import { useMovilidad } from './composables/useMovilidad.js'
 import { useFinca } from './composables/useFinca.js'
+import { useSearch } from './composables/useSearch.js'
 import { haversine } from './services/overpass.js'
 
 // Tema claro/oscuro (estado compartido en el composable). El chrome lo gestiona
@@ -44,8 +45,8 @@ const { isMobile, sidebarOpen, controlsOpen, utilsOpen } = usePanels()
 // al bajar desde expandido; los controles no lo necesitan (importan useSheetDrag sin callback).
 const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { cardOpen.value = {} })
 
-// Variables reactivas para el panel
-const searchQuery = ref('')
+// Búsqueda (store useSearch): el click en el mapa actualiza el texto con la dirección seleccionada.
+const { searchQuery } = useSearch()
 const measureTotal = ref(null) // distancia acumulada de la herramienta de medición
 
 // Estado del mapa centralizado en el store (Fase 1 del refactor a componentes).
@@ -66,44 +67,9 @@ const cardOpen = ref(isMobile.value ? {} : { info: true }) // id -> abierta
 function toggleCard(id) { cardOpen.value = { ...cardOpen.value, [id]: !cardOpen.value[id] } }
 watch(sidebarOpen, (open) => { if (open && isMobile.value) { cardOpen.value = {}; sheetFull.value = false } })
 let map = null
-let searchMarker = null
+const marker = mapStore.marker // pin compartido (búsqueda + click en el mapa)
 // Compartido con los stores (useZones, etc.): capas cuyo clic abre popup y NO selecciona finca.
 const overlayClickLayers = mapStore.overlayClickLayers
-
-// Función de Geocoding (Convertir texto a Coordenadas)
-const buscarDireccion = async () => {
-  if (!searchQuery.value) return;
-  
-  // Usamos la API gratuita de Nominatim (OpenStreetMap)
-  // Agregamos ", Barcelona" automáticamente para acotar la búsqueda a la ciudad
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value + ', Barcelona')}`
-  
-  try {
-    const response = await fetch(url)
-    const results = await response.json()
-    
-    if (results && results.length > 0) {
-      const { lat, lon, display_name } = results[0]
-      
-      // Hacemos zoom directamente a la calle encontrada
-      map.flyTo({ center: [Number(lon), Number(lat)], zoom: 17 })
-
-      // Clavamos (o movemos) el pin en la dirección exacta
-      const popup = new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏠 Dirección encontrada:</b><br>${display_name}`)
-      if (searchMarker) {
-        searchMarker.setLngLat([Number(lon), Number(lat)]).setPopup(popup)
-      } else {
-        searchMarker = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([Number(lon), Number(lat)]).setPopup(popup).addTo(map)
-      }
-      searchMarker.togglePopup()
-
-    } else {
-      alert("No se encontró la dirección. Intenta quitar el número o ser más general.")
-    }
-  } catch (error) {
-    console.error("Error en la búsqueda:", error)
-  }
-}
 
 onMounted(() => {
   // Valor de mercado de zona (Incasòl) — dato de ciudad, se carga una vez
@@ -304,10 +270,10 @@ onMounted(() => {
         .catch(err => { console.warn('PIU afectaciones', err); afectaciones.value = { estado: 'error' }; });
 
       // Movemos el pin o lo creamos
-      if (searchMarker) {
-        searchMarker.setLngLat([lng, lat]);
+      if (marker.current) {
+        marker.current.setLngLat([lng, lat]);
       } else {
-        searchMarker = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).addTo(map);
+        marker.current = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).addTo(map);
       }
 
       // Reverse Geocoding (Traducir coordenadas a Calle y Número)
@@ -327,12 +293,12 @@ onMounted(() => {
           searchQuery.value = direccionCorta;
           selectedAddress.value = direccionCorta;
           
-          searchMarker.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>${data.display_name}`));
-          if (!searchMarker.getPopup().isOpen()) searchMarker.togglePopup();
+          marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>${data.display_name}`));
+          if (!marker.current.getPopup().isOpen()) marker.current.togglePopup();
         } else {
           selectedAddress.value = `Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-          searchMarker.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`));
-          if (!searchMarker.getPopup().isOpen()) searchMarker.togglePopup();
+          marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`));
+          if (!marker.current.getPopup().isOpen()) marker.current.togglePopup();
         }
 
         // Datos catastrales REALES: coords → ref. de parcela (14) → finca (edificio + unidad)
@@ -375,7 +341,7 @@ onMounted(() => {
 
 <template>
   <div class="app-container">
-    <TheTopbar v-model:query="searchQuery" @search="buscarDireccion" />
+    <TheTopbar />
     
     <main class="main-content">
       

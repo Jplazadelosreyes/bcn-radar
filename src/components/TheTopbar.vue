@@ -3,15 +3,10 @@
 // En escritorio es una barra sólida; en móvil se convierte en cápsula flotante glass
 // sobre el mapa (el mapa es el protagonista, la UI flota encima).
 import { useTheme } from '../composables/useTheme.js'
+import { useSearch } from '../composables/useSearch.js'
 
 const { theme, toggleTheme } = useTheme()
-defineProps<{ query?: string }>()
-const emit = defineEmits<{
-  'update:query': [value: string]
-  search: []
-}>()
-
-const onInput = (e: Event) => emit('update:query', (e.target as HTMLInputElement).value)
+const { searchQuery, buscar } = useSearch()
 </script>
 
 <template>
@@ -32,13 +27,12 @@ const onInput = (e: Event) => emit('update:query', (e.target as HTMLInputElement
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
         </span>
         <input
-          :value="query"
-          @input="onInput"
-          @keyup.enter="emit('search')"
+          v-model="searchQuery"
+          @keyup.enter="buscar"
           type="text"
           placeholder="Ej: Carrer de València, 285"
         />
-        <button class="search-go" @click="emit('search')" aria-label="Buscar dirección">
+        <button class="search-go" @click="buscar" aria-label="Buscar dirección">
           <svg class="go-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
           <span class="go-txt">Buscar</span>
         </button>

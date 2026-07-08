@@ -26,6 +26,9 @@ const mapContext = ref({
 const overlayClickLayers = []
 const stopLayerIds = []
 
+// Marcador único de la finca/dirección actual (lo comparten búsqueda y click en el mapa).
+const marker = { current: null }
+
 export function useMapStore() {
-  return { map, mapContext, overlayClickLayers, stopLayerIds }
+  return { map, mapContext, overlayClickLayers, stopLayerIds, marker }
 }
