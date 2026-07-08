@@ -23,7 +23,7 @@ import InfoDossier from './components/sidebar/InfoDossier.vue'
 import { useMovilidad } from './composables/useMovilidad.js'
 import { useFinca } from './composables/useFinca.js'
 import { useSearch } from './composables/useSearch.js'
-import { haversine } from './services/overpass.js'
+import { useMeasure } from './composables/useMeasure.js'
 
 // Tema claro/oscuro (estado compartido en el composable). El chrome lo gestiona
 // useTheme; aquí recoloreamos el mapa (paleta completa día/noche) + la máscara.
@@ -47,7 +47,8 @@ const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouch
 
 // Búsqueda (store useSearch): el click en el mapa actualiza el texto con la dirección seleccionada.
 const { searchQuery } = useSearch()
-const measureTotal = ref(null) // distancia acumulada de la herramienta de medición
+// Medición (store useMeasure): el click-handler añade puntos mientras está activa.
+const { measuring, addPoint } = useMeasure()
 
 // Estado del mapa centralizado en el store (Fase 1 del refactor a componentes).
 // `map` sigue como variable local de trabajo aquí y se registra en el store al crearse.
@@ -86,28 +87,6 @@ onMounted(() => {
   // card "Movilidad y servicios". (Antes se auto-activaban a z16 y, al alejar, se
   // dibujaban todas las paradas de la ciudad = miles de puntos. Se quitó.)
 
-  // ── Herramienta de medición de distancias ──
-  let measuring = false
-  const measurePoints = []
-  const renderMeasure = () => {
-    const feats = measurePoints.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: p } }))
-    if (measurePoints.length >= 2) feats.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: measurePoints } })
-    const src = map.getSource('measure')
-    if (src) src.setData({ type: 'FeatureCollection', features: feats })
-    let total = 0
-    for (let i = 1; i < measurePoints.length; i++) total += haversine(measurePoints[i - 1], measurePoints[i])
-    measureTotal.value = measurePoints.length < 2 ? null : (total >= 1000 ? `${(total / 1000).toFixed(2)} km` : `${Math.round(total)} m`)
-  }
-  const clearMeasure = () => { measurePoints.length = 0; renderMeasure() }
-  const setMeasuring = (on) => {
-    measuring = on
-    map.getCanvas().style.cursor = on ? 'crosshair' : ''
-    if (!on) clearMeasure()
-  }
-  const checkMeasure = document.getElementById('check-measure')
-  if (checkMeasure) checkMeasure.addEventListener('change', (e) => setMeasuring(e.target.checked))
-  const btnMeasureClear = document.getElementById('btn-measure-clear')
-  if (btnMeasureClear) btnMeasureClear.addEventListener('click', () => clearMeasure())
 
   // Capas de paradas (transit/radio) — compartidas con los stores para que el click-handler
   // no confunda su clic con seleccionar finca. Las llenan useMovilidad y useRadio.
@@ -249,9 +228,8 @@ onMounted(() => {
   // MAGIA INTERACTIVA: Seleccionar la finca/dirección con el ratón
   map.on('click', async function(e) {
     // En modo medición el clic añade un vértice, no selecciona finca
-    if (measuring) {
-      measurePoints.push([e.lngLat.lng, e.lngLat.lat])
-      renderMeasure()
+    if (measuring.value) {
+      addPoint(e.lngLat)
       return
     }
     // Si el clic cae sobre una parada de transporte, deja que su popup lo maneje
@@ -377,7 +355,7 @@ onMounted(() => {
           @close="selectedStop = null; clearRoute()" @pick="pickStopLine" @clear="stopClear" />
 
         <!-- Controles flotantes del mapa (Abajo Derecha) -->
-        <MapControls :measure-total="measureTotal" />
+        <MapControls />
       </div>
       
     </main>

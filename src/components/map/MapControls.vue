@@ -1,20 +1,19 @@
 <script setup lang="ts">
 // Panel flotante "Eines" (abajo-derecha): mapa base · vista 3D · herramientas (medir · radio).
-// Basemap/3D (useMapTools), radio (useRadio) y la finca (useFinca) vienen de sus stores.
-// Solo `measureTotal` llega por prop hasta que la medición migre a su store.
+// Todo el estado viene de sus stores (useMapTools/useRadio/useFinca/useMeasure/usePanels) → SIN props.
 import { useMapTools } from '../../composables/useMapTools.js'
 import { usePanels } from '../../composables/usePanels.js'
 import { useSheetDrag } from '../../composables/useSheetDrag.js'
 import { useRadio } from '../../composables/useRadio.js'
 import { useFinca } from '../../composables/useFinca.js'
-
-defineProps<{ measureTotal?: string | number | null }>()
+import { useMeasure } from '../../composables/useMeasure.js'
 
 const { basemap, edificios3d, relieve3d, setBasemap, toggleEdificios3d, toggleRelieve3d } = useMapTools()
 const { controlsOpen } = usePanels()
 const { start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag()
 const { radioOn, radioMetros, radioLabel } = useRadio()
 const { clickedCoords } = useFinca()
+const { measureTotal, setMeasuring, clear: clearMeasure } = useMeasure()
 </script>
 
 <template>
@@ -47,11 +46,11 @@ const { clickedCoords } = useFinca()
     <div class="control-section">
       <h4>Herramientas</h4>
       <div class="control-group">
-        <label class="ctrl"><input type="checkbox" id="check-measure" value="measure"><span>Medir distancia</span></label>
+        <label class="ctrl"><input type="checkbox" @change="setMeasuring(($event.target as HTMLInputElement).checked)"><span>Medir distancia</span></label>
       </div>
       <div v-if="measureTotal" class="measure-readout">
         <span class="measure-total">{{ measureTotal }}</span>
-        <button id="btn-measure-clear" class="measure-clear" type="button">Limpiar</button>
+        <button class="measure-clear" type="button" @click="clearMeasure()">Limpiar</button>
       </div>
       <p class="ctrl-hint">Haz clic en el mapa para marcar puntos; la distancia se suma tramo a tramo.</p>
 
