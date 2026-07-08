@@ -27,6 +27,7 @@ const overlayClickLayers = []
 const stopLayerIds = []
 
 // Marcador único de la finca/dirección actual (lo comparten búsqueda y click en el mapa).
+/** @type {{ current: import('maplibre-gl').Marker | null }} */
 const marker = { current: null }
 
 export function useMapStore() {
