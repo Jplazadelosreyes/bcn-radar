@@ -35,9 +35,13 @@ const fincaData = ref({
 
 /** @type {import('vue').Ref<{ lat: number; lng: number } | null>} */
 const clickedCoords = ref(null) // coords del último clic (miniatura satélite + centro del radio)
+/** @type {import('vue').Ref<string | null>} */
+const selectedAddress = ref(null) // dirección legible de la finca (búsqueda / clic)
 
-const afectaciones = ref({ estado: 'vacio' }) // PIU · GetFeatureInfo: 'vacio'|'cargando'|'ok'|'error'
-const valorZona = ref(null) // valor de mercado de zona (Incasòl): { renda, any, contratos }
+/** @type {import('vue').Ref<Record<string, any>>} PIU · GetFeatureInfo: { estado, qualificacio?, suspensions?, tramits?, aprovats?, gestions? } */
+const afectaciones = ref({ estado: 'vacio' }) // 'vacio'|'cargando'|'ok'|'error'
+/** @type {import('vue').Ref<{ renda: number; any: string | number; contratos: number } | null>} */
+const valorZona = ref(null) // valor de mercado de zona (Incasòl)
 
 const classific = classificLabel
 
@@ -141,7 +145,7 @@ const checklistComprador = [
 
 export function useFinca() {
   return {
-    fincaData, clickedCoords, afectaciones, valorZona, classific,
+    fincaData, clickedCoords, selectedAddress, afectaciones, valorZona, classific,
     claveSistema, satelliteThumb, antiguedad, supUtilEstimada, veredictos, deepLinks,
     ciudadLinks, zonaLinks, copiar, checklistComprador,
   }
