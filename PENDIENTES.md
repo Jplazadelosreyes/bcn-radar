@@ -81,6 +81,20 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   como el viejo App.vue. Hoy ningún archivo la roza.
 - **Verde**: typecheck 0 · eslint limpio · 19 tests · build OK. Falta verificación en navegador.
 
+### Sub-hito: auditoría "una responsabilidad = un componente" (2 splits finales)
+
+Revisión de TODO el árbol para confirmar que nada agrupa varias responsabilidades. Dos casos
+reales encontrados y partidos:
+- **MovilidadCard.vue: 99 → 19** (composición). Metía dos dominios en un template → sub-secciones
+  `components/sidebar/movilidad/`: `TransporteSection.vue` (65, useTransporteModos + useExplorador
+  Paradas) y `CapasDatosSection.vue` (30, useCapasDatos).
+- **MapCanvas.vue: 211 → 110**. El `map.on('load')` ensamblaba ~8 grupos de capas → salieron a
+  `services/map-layers.js` (125): `addBasemaps`, `addBcnMask`, `add3dBuildings`, `addRadioLayers`,
+  `addMeasureLayers`. MapCanvas queda como ciclo de vida del motor + cableado de eventos.
+- Resto del árbol auditado y OK (App, fichas, CapasCard, ZonasCard, TheTopbar, StopExplorer,
+  MapControls, MapFabs, SectionCard = cada uno una responsabilidad). **Verde**: typecheck 0 ·
+  eslint limpio · 19 tests · build OK.
+
 ## Estado final del refactor (sesión 2026-07-09)
 
 Monolito roto en piezas de responsabilidad única, todo commiteado en `main`:
