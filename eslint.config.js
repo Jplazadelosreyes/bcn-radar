@@ -23,4 +23,13 @@ export default defineConfigWithVueTs(
       'vue/block-lang': ['error', { script: { lang: 'ts' } }],
     },
   },
+  {
+    name: 'app/anti-monolito',
+    rules: {
+      // Salvaguarda: que ningún archivo vuelva a acumular responsabilidades como el viejo
+      // App.vue (2.694 líneas). Si un archivo pasa de 300 líneas de CÓDIGO (sin contar
+      // comentarios ni blancos), hay que partirlo en componentes/composables/config.
+      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+    },
+  },
 )

@@ -12,21 +12,19 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { createMap } from '../../composables/useMap'
 import { initAutoZones } from '../../composables/useAutoZones'
 import { applyMapTheme } from '../../services/map-theme.js'
-import { fetchFinca } from '../../services/catastro.js'
-import { fetchAfectaciones } from '../../services/piu.js'
 import { fetchAlquilerBarcelona } from '../../services/valor.js'
 import { useTheme } from '../../composables/useTheme'
 import { useMapStore } from '../../composables/useMapStore'
 import { useFinca } from '../../composables/useFinca'
-import { useSearch } from '../../composables/useSearch'
 import { useMeasure } from '../../composables/useMeasure'
+import { useFincaPicker } from '../../composables/useFincaPicker'
 
 const { theme } = useTheme()
 const mapStore = useMapStore()
-const { mapContext, marker, overlayClickLayers } = mapStore
-const { fincaData, clickedCoords, selectedAddress, afectaciones, valorZona } = useFinca()
-const { searchQuery } = useSearch()
+const { mapContext, overlayClickLayers } = mapStore
+const { valorZona } = useFinca()
 const { measuring, addPoint } = useMeasure()
+const { selectFincaAt } = useFincaPicker()
 
 let map: any = null // instancia MapLibre (API amplia; se tipa como any a propósito)
 
@@ -191,7 +189,7 @@ onMounted(() => {
 
   map.on('zoomend', () => setDrillLevel(map.getZoom()))
 
-  // MAGIA INTERACTIVA: Seleccionar la finca/dirección con el ratón
+  // MAGIA INTERACTIVA: seleccionar la finca/dirección con el ratón (lógica en useFincaPicker).
   map.on('click', async function (e: any) {
     // En modo medición el clic añade un vértice, no selecciona finca
     if (measuring.value) {
@@ -202,82 +200,7 @@ onMounted(() => {
     const guardLayers = [...stopLayerIds, ...overlayClickLayers].filter(id => map.getLayer(id))
     if (guardLayers.length && map.queryRenderedFeatures(e.point, { layers: guardLayers }).length) return
     // Solo permitimos clavar el pin si ya estamos a nivel de calle/finca (Zoom >= 16)
-    if (map.getZoom() >= 16) {
-      const lat = e.lngLat.lat;
-      const lng = e.lngLat.lng;
-      clickedCoords.value = { lat, lng };
-
-      // Situación urbanística (PIU) — en paralelo al Catastro, sin bloquearlo
-      afectaciones.value = { estado: 'cargando' };
-      fetchAfectaciones(lng, lat)
-        .then(a => { afectaciones.value = { estado: 'ok', ...a }; })
-        .catch(err => { console.warn('PIU afectaciones', err); afectaciones.value = { estado: 'error' }; });
-
-      // Movemos el pin o lo creamos
-      if (marker.current) {
-        marker.current.setLngLat([lng, lat]);
-      } else {
-        marker.current = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).addTo(map);
-      }
-
-      // Reverse Geocoding (Traducir coordenadas a Calle y Número)
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-      
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data && data.address) {
-          // Extraemos la calle y el número
-          const calle = data.address.road || data.address.pedestrian || 'Calle Desconocida';
-          const numero = data.address.house_number || '';
-          const direccionCorta = `${calle} ${numero}`.trim();
-          
-          // Actualizamos la caja de búsqueda visualmente para el usuario
-          searchQuery.value = direccionCorta;
-          selectedAddress.value = direccionCorta;
-          
-          marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>${data.display_name}`));
-          if (!marker.current.getPopup().isOpen()) marker.current.togglePopup();
-        } else {
-          selectedAddress.value = `Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-          marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`));
-          if (!marker.current.getPopup().isOpen()) marker.current.togglePopup();
-        }
-
-        // Datos catastrales REALES: coords → ref. de parcela (14) → finca (edificio + unidad)
-        fincaData.value = { ...fincaData.value, estado: 'cargando', refCatastral: null };
-        try {
-          const coordUrl = `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}`;
-          const coordDoc = new DOMParser().parseFromString(await (await fetch(coordUrl)).text(), 'text/xml');
-          const pc1 = coordDoc.getElementsByTagName('pc1')[0]?.textContent || '';
-          const pc2 = coordDoc.getElementsByTagName('pc2')[0]?.textContent || '';
-
-          if (!pc1 || !pc2) {
-            fincaData.value = { estado: 'sin-parcela', refCatastral: null, rcInmueble: null, ano: null, superficie: null, uso: null, coefParticipacion: null, nInmuebles: null, plantas: null };
-          } else {
-            const finca = await fetchFinca(pc1 + pc2);
-            fincaData.value = {
-              estado: 'ok',
-              refCatastral: finca.rc14,
-              rcInmueble: finca.rcInmueble,
-              ano: finca.ano,
-              superficie: finca.superficie,
-              uso: finca.uso,
-              coefParticipacion: finca.coefParticipacion,
-              nInmuebles: finca.nInmuebles,
-              plantas: finca.plantas,
-            };
-          }
-        } catch (catErr) {
-          console.error('Error Catastro', catErr);
-          fincaData.value = { ...fincaData.value, estado: 'error' };
-        }
-
-      } catch (error) {
-        console.error("Error obteniendo la dirección:", error);
-      }
-    }
+    if (map.getZoom() >= 16) await selectFincaAt(map, e.lngLat)
   });
 
 })

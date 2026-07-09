@@ -68,8 +68,32 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   (Modos + Explorador + Capas); StopExplorer → tipos desde transporteState. Cero cambio de
   comportamiento. **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK.
 
-**Resta**: (a) más tests de lógica pura (chipsFor/isCurated, derivados); (b) revisar
-`MapCanvas.vue` (288) por lógica extraíble; (c) salvaguarda anti-monolito (regla lint max-lines).
+### Sub-hito: MapCanvas + tests + salvaguarda anti-monolito
+
+- **MapCanvas.vue: 288 → 211 líneas.** El click-handler de selección de finca (geocoding +
+  Catastro + PIU + pin, ~86 líneas de lógica de negocio) salió a `composables/useFincaPicker.ts`
+  (97): expone `selectFincaAt(map, lngLat)`; MapCanvas queda como ensamblaje del motor + routing
+  del clic. El montaje de basemaps/capas se queda (es el motor, pertenece ahí).
+- **Tests: 10 → 19.** Nuevos: `transporteState.test.ts` (isCurated, 4) y
+  `useTransporteModos.test.ts` (chipsFor bus/no-bus/búsqueda/expandido, 5).
+- **Salvaguarda anti-monolito**: regla ESLint `max-lines` (error a 300 líneas de código, sin
+  comentarios ni blancos) en `eslint.config.js` → el CI bloquea que un archivo vuelva a crecer
+  como el viejo App.vue. Hoy ningún archivo la roza.
+- **Verde**: typecheck 0 · eslint limpio · 19 tests · build OK. Falta verificación en navegador.
+
+## Estado final del refactor (sesión 2026-07-09)
+
+Monolito roto en piezas de responsabilidad única, todo commiteado en `main`:
+- Sidebar/Información: InfoDossier (switch) + 5 fichas por nivel + FichaFinca (orquestador) + 7
+  bloques en `ficha/finca/` + átomos FichaDoc/FichaVeredicto.
+- Movilidad: config en `config/` + 3 stores (`useTransporteModos`, `useExploradorParadas`,
+  `useCapasDatos`) + estado compartido `transporteState`.
+- Mapa: `useFincaPicker` fuera de MapCanvas.
+- 19 tests · salvaguarda `max-lines` activa.
+
+**PENDIENTE real ahora = FIXES** (tras verificación en navegador del operador). Lo opcional que
+queda es de rendimiento decreciente: partir `map-theme.js` (235) si molesta; iconografía de
+paradas GTFS vs OSM (punto 4 del plan original); routing A→B (norte del producto, punto 5).
 
 ## Objetivo del producto
 
