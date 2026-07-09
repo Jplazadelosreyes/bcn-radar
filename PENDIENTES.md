@@ -19,8 +19,22 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   (sin prop-drilling). Cero cambio de comportamiento.
 - **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
 
-**Próximo candidato natural**: `useMovilidad.ts` (519) — config declarativa + loaders + estado
-GTFS mezclados (= PENDIENTE #1). Opcional: partir `FichaFinca` (293) en sub-bloques.
+### Sub-hito: config declarativa de movilidad a `src/config/` (= PENDIENTE #1, parcial)
+
+- **useMovilidad.ts: 519 → 397 líneas.** Se extrajo la CONFIG pura del god-composable:
+  `config/transportes.ts` (18) = `TRANSPORTES` + `TRANSPORT_BBOX` + tipo `TransporteModo`;
+  `config/capas-datos.ts` (128) = catálogo `MOVILIDAD` + interfaz `MovLayer` + helpers/loaders
+  del catálogo (`poiLayer`, `loadCarrilBici`, `poiCategory`) + `poiDate` (metadato reactivo).
+- La LÓGICA de mapa (loadTransport, toggleData, explorador GTFS, filtros de línea) se queda en
+  useMovilidad; consume la config vía import y la re-expone en su return → consumidores intactos
+  (MovilidadCard usa el return; StopExplorer solo importa tipos StopChip/SelectedStop, que se
+  quedan). El operador ahora cura el catálogo editando `config/`. Cero cambio de comportamiento.
+- **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
+
+**Próximos candidatos**: (a) `FichaFinca.vue` (293) en sub-bloques (BloqueCatastro/PIU/Valor/
+Checklist); (b) partir la LÓGICA de useMovilidad (397) en composables por dominio —
+`useTransporteModos` / `useCapasDatos` / `useExploradorParadas` — pero comparten `selectedStop`
+y el estado de líneas (explorador unificado GTFS+Overpass): más delicado, evaluar antes.
 
 ## Objetivo del producto
 
