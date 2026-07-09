@@ -42,9 +42,24 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   en FichaFinca; los bloques son "tontos". Cero cambio de comportamiento.
 - **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
 
-**Próximo candidato**: partir la LÓGICA de useMovilidad (397) en composables por dominio —
-`useTransporteModos` / `useCapasDatos` / `useExploradorParadas` — pero comparten `selectedStop`
-y el estado de líneas (explorador unificado GTFS+Overpass): más delicado, evaluar antes.
+### Sub-hito: extraer useCapasDatos (dominio independiente)
+
+- **useMovilidad.ts: 397 → 340 líneas.** Se sacó el dominio de capas de datos abiertos a
+  `composables/useCapasDatos.ts` (78): estado (`dataActive`/`dataStatus`/`dataTimers`) + `toggleData`
+  + re-export de `MOVILIDAD`/`poiDate`. Es 100% independiente (no comparte estado con líneas ni
+  con la parada seleccionada) → corte seguro.
+- **MovilidadCard consume ambos**: `useMovilidad()` (transporte + explorador) y `useCapasDatos()`
+  (capas). Separación REAL, no de fachada. Cero cambio de comportamiento.
+- useMovilidad queda cohesivo: transporte por modo + explorador de parada, que SÍ comparten
+  `selectedStop` y el estado de líneas (explorador unificado GTFS+Overpass) — no se fuerza a
+  separarlos. **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verif. navegador.
+
+**Estado de la segmentación**: el árbol quedó en piezas de responsabilidad única. Lo que resta es
+opcional y de rendimiento decreciente:
+- useMovilidad (340) podría partirse aún en `useTransporteModos` + `useExploradorParadas`, pero
+  comparten estado (transportLines/transportSelected/selectedStop/applyLineFilter): requiere
+  decidir dónde vive ese estado compartido. Evaluar si el beneficio compensa el enredo.
+- MapCanvas (288) — el motor del mapa; revisar si hay lógica extraíble a composable.
 
 ## Objetivo del producto
 

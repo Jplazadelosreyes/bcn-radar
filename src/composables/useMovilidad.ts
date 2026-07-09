@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  useMovilidad — transporte y servicios: líneas por modo (Overpass), explorador de
-//  parada unificado (GTFS + Overpass) con recorridos, y capas de datos abiertos (Bicing,
-//  carriles bici, POI, temperatura). Singleton. Patrón: estado/config a nivel de módulo;
-//  las funciones que tocan el mapa viven dentro de useMovilidad() y toman `map` local.
+//  useMovilidad — transporte y su explorador: líneas por modo (Overpass) y explorador de
+//  parada unificado (GTFS + Overpass) con recorridos. Singleton. Patrón: estado/config a
+//  nivel de módulo; las funciones que tocan el mapa viven dentro de useMovilidad() y toman
+//  `map` local. Las capas de datos abiertos (Bicing/POI/temperatura) viven en useCapasDatos.
 //
 //  `any` a nivel de archivo: éste es el LÍMITE con dos APIs sin esquema tipado — las
 //  expresiones imperativas de MapLibre y las features crudas de Overpass/GTFS. El dominio
-//  (chips, paradas, líneas, capas) SÍ está tipado abajo; los `any` se acotan a esas fronteras.
+//  (chips, paradas, líneas) SÍ está tipado abajo; los `any` se acotan a esas fronteras.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
 import { ref, computed } from 'vue'
@@ -15,7 +15,6 @@ import { useMapStore } from './useMapStore'
 import { overpassFetch } from '../services/overpass.js'
 import { loadTransit, stopsGeoJSON, routeGeoJSON, routeChip } from '../services/transit.js'
 import { TRANSPORTES, TRANSPORT_BBOX, type TransporteModo } from '../config/transportes'
-import { MOVILIDAD, poiDate, type MovLayer } from '../config/capas-datos'
 
 // ── Tipos de dominio ──
 export interface TransportLine {
@@ -49,11 +48,6 @@ const transitStatus = ref('') // 'loading'|'ok'|'error'
 let transitData: any = null // JSON pre-procesado (no reactivo: es grande)
 const selectedStop = ref<SelectedStop | null>(null)
 const activeRouteIds = ref<string[]>([]) // recorridos GTFS activos (multi-selección)
-
-// ── Capas de datos abiertos (catálogo en config/capas-datos) ──
-const dataActive = ref<Record<string, boolean>>({})
-const dataStatus = ref<Record<string, LoadStatus>>({})
-const dataTimers: Record<string, ReturnType<typeof setInterval>> = {} // layerId -> refresco (vivo)
 
 // Chips a renderizar por modo (bus: al buscar o la lista completa si se expande).
 const chipsFor = (key: string): TransportLine[] => {
@@ -127,57 +121,6 @@ export function useMovilidad() {
     const next = cur.includes(ref) ? cur.filter((r) => r !== ref) : [...cur, ref]
     transportSelected.value = { ...transportSelected.value, [key]: next }
     applyLineFilter(key)
-  }
-
-  // Enciende/apaga una capa de datos: la carga la 1ª vez (lazy), luego alterna visibilidad.
-  async function toggleData(cfg: MovLayer) {
-    const map = mapRef.value
-    if (!map) return
-    const on = !dataActive.value[cfg.id]
-    dataActive.value = { ...dataActive.value, [cfg.id]: on }
-    const id = `data-${cfg.id}`
-    const layerIds = cfg.symbol ? [id, `${id}-label`] : [id]
-    if (!on) {
-      layerIds.forEach((l) => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', 'none'))
-      if (dataTimers[cfg.id]) { clearInterval(dataTimers[cfg.id]); delete dataTimers[cfg.id] }
-      return
-    }
-    if (map.getSource(id)) {
-      layerIds.forEach((l) => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', 'visible'))
-    } else {
-      dataStatus.value = { ...dataStatus.value, [cfg.id]: 'loading' }
-      try {
-        const gj = await cfg.load()
-        map.addSource(id, { type: 'geojson', data: gj })
-        map.addLayer({ id, type: cfg.layerType || 'circle', source: id, minzoom: cfg.minzoom || 0, paint: cfg.paint })
-        if (cfg.symbol) {
-          map.addLayer({
-            id: `${id}-label`, type: 'symbol', source: id, minzoom: cfg.minzoom || 0,
-            layout: { 'text-field': cfg.symbol.field, 'text-size': cfg.symbol.size || 10, 'text-allow-overlap': false },
-            paint: { 'text-color': cfg.symbol.color || '#1B2740', 'text-halo-color': '#fff', 'text-halo-width': 1.4 },
-          })
-        }
-        overlayClickLayers.push(id) // su clic muestra popup, no selecciona finca
-        if (cfg.popup) {
-          map.on('click', id, (e: any) => {
-            new maplibregl.Popup({ offset: 12 }).setLngLat(e.lngLat).setHTML(cfg.popup!(e.features[0].properties)).addTo(map)
-          })
-          map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer' })
-          map.on('mouseleave', id, () => { map.getCanvas().style.cursor = '' })
-        }
-        dataStatus.value = { ...dataStatus.value, [cfg.id]: 'ok' }
-      } catch (e) {
-        console.warn('capa de datos', cfg.id, e)
-        dataStatus.value = { ...dataStatus.value, [cfg.id]: 'error' }
-        dataActive.value = { ...dataActive.value, [cfg.id]: false }
-        return
-      }
-    }
-    if (cfg.live && !dataTimers[cfg.id]) {
-      dataTimers[cfg.id] = setInterval(async () => {
-        try { const gj = await cfg.load(); if (map.getSource(id)) map.getSource(id).setData(gj) } catch { /* red intermitente */ }
-      }, cfg.live)
-    }
   }
 
   // ── Explorador GTFS: paradas → recorridos ──
@@ -388,10 +331,9 @@ export function useMovilidad() {
   }
 
   return {
-    TRANSPORTES, MOVILIDAD,
+    TRANSPORTES,
     transportStatus, transportLines, transportSelected, busSearch, busExpanded,
     chipsFor, setAllLines, toggleLine,
-    dataActive, dataStatus, poiDate, toggleData,
     transitOn, transitStatus, selectedStop, stopHasSelection, stopChipsView,
     toggleTransit, loadTransport, pickStopLine, clearRoute, stopClear,
   }

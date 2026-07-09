@@ -3,17 +3,21 @@
 // y capas de datos abiertos (Bicing, POI, temperatura). Lógica en el store useMovilidad.
 import SectionCard from './SectionCard.vue'
 import { useMovilidad } from '../../composables/useMovilidad'
+import { useCapasDatos } from '../../composables/useCapasDatos'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()
 
+// Transporte y su explorador (líneas por modo + paradas GTFS).
 const {
-  TRANSPORTES, MOVILIDAD,
+  TRANSPORTES,
   transportStatus, transportLines, transportSelected, busSearch, busExpanded,
   chipsFor, setAllLines, toggleLine,
-  dataActive, dataStatus, poiDate, toggleData,
   transitOn, transitStatus, toggleTransit, loadTransport,
 } = useMovilidad()
+
+// Capas de datos abiertos (Bicing, POI, temperatura) — dominio independiente.
+const { MOVILIDAD, dataActive, dataStatus, poiDate, toggleData } = useCapasDatos()
 </script>
 
 <template>
