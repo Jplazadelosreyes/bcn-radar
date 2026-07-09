@@ -11,6 +11,7 @@ import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
 import { overpassFetch, haversine } from '../services/overpass.js'
+import { stopPopup } from '../services/map-popups.js'
 
 // Parada de transporte cercana a la finca (dentro del radio).
 export interface RadioStop {
@@ -99,7 +100,7 @@ const focusStop = (s: RadioStop) => {
   const m = map.value
   if (!m) return
   m.flyTo({ center: [s.lng, s.lat], zoom: Math.max(m.getZoom(), 16) })
-  new maplibregl.Popup({ offset: 12 }).setLngLat([s.lng, s.lat]).setHTML(`<b>${s.name}</b><br><span style="color:#5B616B">${s.modo}${s.lines ? ' · ' + s.lines : ''}</span>`).addTo(m)
+  new maplibregl.Popup({ offset: 12 }).setLngLat([s.lng, s.lat]).setHTML(stopPopup(s)).addTo(m)
 }
 
 const comoLlegar = (s: RadioStop) => {

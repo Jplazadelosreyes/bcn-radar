@@ -11,6 +11,7 @@
 import maplibregl from 'maplibre-gl'
 import { fetchFinca } from '../services/catastro.js'
 import { fetchAfectaciones } from '../services/piu.js'
+import { fincaPopup } from '../services/map-popups.js'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
 import { useSearch } from './useSearch'
@@ -52,11 +53,11 @@ export function useFincaPicker() {
         const direccionCorta = `${calle} ${numero}`.trim()
         searchQuery.value = direccionCorta
         selectedAddress.value = direccionCorta
-        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>${data.display_name}`))
+        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(fincaPopup(data.display_name)))
         if (!marker.current.getPopup().isOpen()) marker.current.togglePopup()
       } else {
         selectedAddress.value = `Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`
-        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏢 Finca Seleccionada</b><br>Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`))
+        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(fincaPopup(`Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`)))
         if (!marker.current.getPopup().isOpen()) marker.current.togglePopup()
       }
 

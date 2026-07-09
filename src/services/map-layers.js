@@ -3,6 +3,7 @@
 // instancia MapLibre — se separó de MapCanvas para que el componente sea solo el ciclo de vida
 // del motor + el cableado de eventos. Los colores del estilo vectorial viven en map-theme.js.
 import maplibregl from 'maplibre-gl'
+import { stopPopup } from './map-popups.js'
 
 // Fuentes raster alternativas al callejero vectorial (satélite, ortofoto, relieve) + overlays
 // (DEM para el 3D, WMS del Catastro). Todas arrancan ocultas; MapControls decide cuál se ve.
@@ -104,7 +105,7 @@ export function addRadioLayers(map, stopLayerIds) {
   map.addLayer({ id: 'radio-stops', type: 'circle', source: 'radio-stops', paint: { 'circle-radius': 5, 'circle-color': ['get', 'color'], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 } })
   map.on('click', 'radio-stops', (e) => {
     const p = e.features[0].properties
-    new maplibregl.Popup({ offset: 12 }).setLngLat(e.lngLat).setHTML(`<b>${p.name}</b><br><span style="color:#5B616B">${p.modo}${p.lines ? ' · ' + p.lines : ''}</span>`).addTo(map)
+    new maplibregl.Popup({ offset: 12 }).setLngLat(e.lngLat).setHTML(stopPopup(p)).addTo(map)
   })
   map.on('mouseenter', 'radio-stops', () => { map.getCanvas().style.cursor = 'pointer' })
   map.on('mouseleave', 'radio-stops', () => { map.getCanvas().style.cursor = '' })

@@ -10,6 +10,7 @@ import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore'
 import { loadZones } from '../services/zones.js'
 import { loadRentaGeoJSON } from '../services/renta.js'
+import { titlePopup, rentaPopup } from '../services/map-popups.js'
 
 const zoneOn = ref<Record<string, boolean>>({}) // level -> visible
 const zoneStatus = ref<Record<string, 'loading' | 'error' | 'ok'>>({}) // level -> estado
@@ -76,7 +77,7 @@ export function useZones() {
         zoneSel[src] = f.id
         const p = f.properties
         const name = level === 'seccions' ? `Sección censal ${p.DISTRICTE}-${p.SEC_CENS}` : p.NOM
-        new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(`<b>${name}</b>`).addTo(map)
+        new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(titlePopup(name)).addTo(map)
       })
       map.on('mouseenter', `${src}-fill`, () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', `${src}-fill`, () => { map.getCanvas().style.cursor = '' })
@@ -120,7 +121,7 @@ export function useZones() {
       map.on('click', 'renta-fill', (e: any) => {
         const p = e.features[0].properties
         if (p.renta == null) return
-        new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(`<b>${p.NOM || 'Sección'} · ${p.DISTRICTE}-${p.SEC_CENS}</b><br><span style="color:#5B616B">Renta media: ${(+p.renta).toLocaleString('es-ES')} €/año</span>`).addTo(map)
+        new maplibregl.Popup({ offset: 6 }).setLngLat(e.lngLat).setHTML(rentaPopup(p)).addTo(map)
       })
       map.on('mouseenter', 'renta-fill', () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', 'renta-fill', () => { map.getCanvas().style.cursor = '' })

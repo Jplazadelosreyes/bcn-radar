@@ -5,6 +5,7 @@
 import { ref } from 'vue'
 import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore.js'
+import { direccionPopup } from '../services/map-popups.js'
 
 const searchQuery = ref('')
 
@@ -22,7 +23,7 @@ export function useSearch() {
       if (results && results.length > 0) {
         const { lat, lon, display_name } = results[0]
         map.flyTo({ center: [Number(lon), Number(lat)], zoom: 17 })
-        const popup = new maplibregl.Popup({ offset: 24 }).setHTML(`<b>🏠 Dirección encontrada:</b><br>${display_name}`)
+        const popup = new maplibregl.Popup({ offset: 24 }).setHTML(direccionPopup(display_name))
         if (marker.current) {
           marker.current.setLngLat([Number(lon), Number(lat)]).setPopup(popup)
         } else {

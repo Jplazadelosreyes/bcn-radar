@@ -12,6 +12,7 @@ import { ref, computed } from 'vue'
 import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore'
 import { loadTransit, stopsGeoJSON, routeGeoJSON, routeChip } from '../services/transit.js'
+import { titlePopup } from '../services/map-popups.js'
 import { useTransporteModos } from './useTransporteModos'
 import {
   transportLines, transportSelected, selectedStop, isCurated, type StopChip,
@@ -59,7 +60,7 @@ export function useExploradorParadas() {
     })
     overlayClickLayers.push('transit-route-stops')
     map.on('click', 'transit-route-stops', (e: any) => {
-      new maplibregl.Popup({ offset: 10 }).setLngLat(e.lngLat).setHTML(`<b>${e.features[0].properties.name}</b>`).addTo(map)
+      new maplibregl.Popup({ offset: 10 }).setLngLat(e.lngLat).setHTML(titlePopup(e.features[0].properties.name)).addTo(map)
     })
     map.on('mouseenter', 'transit-route-stops', () => { map.getCanvas().style.cursor = 'pointer' })
     map.on('mouseleave', 'transit-route-stops', () => { map.getCanvas().style.cursor = '' })
