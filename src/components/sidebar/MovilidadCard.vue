@@ -1,20 +1,24 @@
 <script setup lang="ts">
-// Sección "Movilidad y servicios": explorador de parada (GTFS), líneas por modo (Overpass)
-// y capas de datos abiertos (Bicing, POI, temperatura). Lógica en el store useMovilidad.
+// Sección "Movilidad y servicios": integra los tres sub-dominios, cada uno en su store —
+// líneas por modo (useTransporteModos), explorador de parada GTFS (useExploradorParadas) y
+// capas de datos abiertos Bicing/POI/temperatura (useCapasDatos).
 import SectionCard from './SectionCard.vue'
-import { useMovilidad } from '../../composables/useMovilidad'
+import { useTransporteModos } from '../../composables/useTransporteModos'
+import { useExploradorParadas } from '../../composables/useExploradorParadas'
 import { useCapasDatos } from '../../composables/useCapasDatos'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ toggle: [] }>()
 
-// Transporte y su explorador (líneas por modo + paradas GTFS).
+// Líneas de transporte por modo (Overpass).
 const {
   TRANSPORTES,
   transportStatus, transportLines, transportSelected, busSearch, busExpanded,
-  chipsFor, setAllLines, toggleLine,
-  transitOn, transitStatus, toggleTransit, loadTransport,
-} = useMovilidad()
+  chipsFor, setAllLines, toggleLine, loadTransport,
+} = useTransporteModos()
+
+// Explorador de parada unificado (GTFS + Overpass).
+const { transitOn, transitStatus, toggleTransit } = useExploradorParadas()
 
 // Capas de datos abiertos (Bicing, POI, temperatura) — dominio independiente.
 const { MOVILIDAD, dataActive, dataStatus, poiDate, toggleData } = useCapasDatos()

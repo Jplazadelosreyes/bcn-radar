@@ -4,7 +4,7 @@
 //
 // Semi-declarativo a propósito: cada capa lleva su `load()` (loader del servicio) porque el
 // dato no es estático — se descarga en vivo. Los loaders y el estado de metadatos (poiDate)
-// viven aquí junto al catálogo; la LÓGICA de pintado sobre el mapa se queda en useMovilidad.
+// viven aquí junto al catálogo; la LÓGICA de pintado sobre el mapa se queda en useCapasDatos.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ref } from 'vue'
 import { overpassFetch } from '../services/overpass.js'
@@ -27,7 +27,7 @@ export interface MovLayer {
 }
 
 // Fecha de generación del dataset POI (metadato mostrado en la UI). Lo escribe poiCategory
-// al cargar y lo re-expone useMovilidad en su return.
+// al cargar y lo re-expone useCapasDatos en su return.
 export const poiDate = ref('')
 
 const CYCLEWAY_QUERY = '[out:json][timeout:60];way[highway=cycleway](41.30,2.05,41.48,2.25);out geom;'

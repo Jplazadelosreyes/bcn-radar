@@ -55,7 +55,7 @@ onMounted(() => {
 
 
   // Capas de paradas (transit/radio) — compartidas con los stores para que el click-handler
-  // no confunda su clic con seleccionar finca. Las llenan useMovilidad y useRadio.
+  // no confunda su clic con seleccionar finca. Las llenan useTransporteModos/useExploradorParadas y useRadio.
   const stopLayerIds = mapStore.stopLayerIds
 
   map.on('load', () => {

@@ -54,12 +54,22 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   `selectedStop` y el estado de líneas (explorador unificado GTFS+Overpass) — no se fuerza a
   separarlos. **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verif. navegador.
 
-**Estado de la segmentación**: el árbol quedó en piezas de responsabilidad única. Lo que resta es
-opcional y de rendimiento decreciente:
-- useMovilidad (340) podría partirse aún en `useTransporteModos` + `useExploradorParadas`, pero
-  comparten estado (transportLines/transportSelected/selectedStop/applyLineFilter): requiere
-  decidir dónde vive ese estado compartido. Evaluar si el beneficio compensa el enredo.
-- MapCanvas (288) — el motor del mapa; revisar si hay lógica extraíble a composable.
+### Sub-hito: partir useMovilidad en dos dominios + estado compartido
+
+- **useMovilidad.ts (340) ELIMINADO** → 3 archivos de responsabilidad única:
+  `transporteState.ts` (38) = tipos + estado compartido (`transportLines`/`transportSelected`/
+  `selectedStop`) + `isCurated`; `useTransporteModos.ts` (170) = líneas por modo Overpass
+  (loadTransport, chips, filtros, todas/ninguna); `useExploradorParadas.ts` (165) = explorador
+  GTFS unificado (paradas, recorridos multi-selección, pickStopLine/stopClear).
+- El estado compartido se aisló en `transporteState` para que ningún composable sea dueño del
+  otro. `useExploradorParadas` obtiene `applyLineFilter` llamando a `useTransporteModos()`
+  (composición de composables, dependencia unidireccional).
+- Consumidores migrados: App.vue → useExploradorParadas; MovilidadCard → los 3 stores
+  (Modos + Explorador + Capas); StopExplorer → tipos desde transporteState. Cero cambio de
+  comportamiento. **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK.
+
+**Resta**: (a) más tests de lógica pura (chipsFor/isCurated, derivados); (b) revisar
+`MapCanvas.vue` (288) por lógica extraíble; (c) salvaguarda anti-monolito (regla lint max-lines).
 
 ## Objetivo del producto
 

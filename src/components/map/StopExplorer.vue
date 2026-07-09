@@ -3,7 +3,7 @@
 // seleccionada y emite la acción; el dibujo del recorrido lo maneja el padre por ahora.
 // `chips` viene ya anotado con `on` (línea activa) para no depender de la lógica del padre.
 // Tipos del dominio (fuente única en el store de movilidad); este componente solo pinta.
-import type { StopChip, SelectedStop } from '../../composables/useMovilidad'
+import type { StopChip, SelectedStop } from '../../composables/transporteState'
 
 withDefaults(
   defineProps<{

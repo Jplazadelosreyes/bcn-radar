@@ -1,6 +1,6 @@
 // Config declarativa de los modos de transporte por líneas (recorridos reales desde
 // OpenStreetMap / Overpass). Dato puro y editable: el operador cura el catálogo aquí
-// (orden, color, filtro Overpass) sin tocar la lógica del store (useMovilidad).
+// (orden, color, filtro Overpass) sin tocar la lógica del store (useTransporteModos).
 export interface TransporteModo {
   key: string
   label: string

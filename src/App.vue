@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { usePanels } from './composables/usePanels'
 import { useSheetDrag } from './composables/useSheetDrag'
-import { useMovilidad } from './composables/useMovilidad'
+import { useExploradorParadas } from './composables/useExploradorParadas'
 import TheTopbar from './components/TheTopbar.vue'
 import MapCanvas from './components/map/MapCanvas.vue'
 import MapFabs from './components/map/MapFabs.vue'
@@ -23,8 +23,8 @@ const { isMobile, sidebarOpen, controlsOpen, utilsOpen } = usePanels()
 // al bajar desde expandido; los controles no lo necesitan (importan useSheetDrag sin callback).
 const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { cardOpen.value = {} })
 
-// Explorador de parada (store useMovilidad): lo consume el StopExplorer del área del mapa.
-const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useMovilidad()
+// Explorador de parada (store useExploradorParadas): lo consume el StopExplorer del área del mapa.
+const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useExploradorParadas()
 
 // Cards del sidebar: expansión INDEPENDIENTE (se pueden mezclar capas de varias:
 // metro + distritos, etc.). En móvil el sheet abre con todo colapsado (incremental).
