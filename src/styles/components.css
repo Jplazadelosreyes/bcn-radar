@@ -8,7 +8,7 @@
 /* ── Paneles ocultables + botones flotantes (base: escritorio se comporta como antes) ── */
 .panel-close { display: flex; position: absolute; top: 8px; right: 8px; z-index: 30; width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-lo); cursor: pointer; font-size: 12px; align-items: center; justify-content: center; }
 .panel-close:hover { background: var(--surface-3); color: var(--accent); }
-.fab { display: flex; position: absolute; z-index: 1100; width: 46px; height: 46px; border: 1px solid var(--border-2); background: var(--float-bg); backdrop-filter: blur(8px); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,.28); border-radius: var(--r-card); }
+.fab { display: flex; position: absolute; z-index: 1100; width: 46px; height: 46px; border: 1px solid var(--glass-brd-soft); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: var(--shadow-md); border-radius: var(--r-card); }
 .fab:hover { border-color: var(--accent); }
 .fab-info { top: 14px; left: 14px; }
 .fab-map { top: 14px; right: 60px; }
@@ -21,7 +21,7 @@
 }
 
 /* ═══ Controles flotantes del mapa ═══ */
-.map-floating-controls { position: absolute; bottom: 22px; right: 16px; background: var(--float-bg); backdrop-filter: blur(8px); padding: 14px 15px; box-shadow: 0 12px 34px -12px rgba(0,0,0,.6); z-index: 1000; width: 210px; border: 1px solid var(--border); }
+.map-floating-controls { position: absolute; bottom: 22px; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); padding: 14px 15px; box-shadow: var(--shadow-float); z-index: 1000; width: 210px; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); }
 .map-floating-controls h4 { margin: 0 0 10px; font: 700 8px/1 var(--sans); color: var(--text-mut); text-transform: uppercase; letter-spacing: .16em; }
 .control-group { display: flex; flex-direction: column; gap: 9px; }
 .ctrl { display: flex; align-items: center; gap: 9px; font: 500 12px/1 var(--sans); color: var(--text); cursor: pointer; }
@@ -73,9 +73,13 @@
   .sidebar {
     position: absolute; top: 16px; left: 16px; width: 400px;
     height: auto; max-height: calc(100% - 32px);   /* abraza el contenido, tope con margen inferior */
-    border-right: 0; border: 1px solid var(--border); border-radius: 20px;
-    background: var(--bg); padding: 12px;
-    box-shadow: 0 18px 46px -20px rgba(34,48,58,.42);
+    border-right: 0; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); border-radius: 20px;
+    /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    padding: 12px;
+    box-shadow: var(--shadow-float);
     overflow: hidden auto;
   }
   .sidebar::-webkit-scrollbar { width: 8px; }
@@ -303,7 +307,7 @@
 .renta-any { font-family: var(--mono); }
 
 /* ═══ Explorador de parada ═══ */
-.stop-explorer { position: absolute; top: 16px; left: 16px; z-index: 5; width: 306px; max-width: calc(100% - 32px); background: var(--float-bg); backdrop-filter: blur(8px); border: 1px solid var(--border-2); box-shadow: 0 12px 30px rgba(0,0,0,.5); padding: 14px 15px; border-radius: var(--r-card); }
+.stop-explorer { position: absolute; top: 16px; left: 16px; z-index: 5; width: 306px; max-width: calc(100% - 32px); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); box-shadow: var(--shadow-float); padding: 14px 15px; border-radius: var(--r-card); }
 .stop-explorer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .stop-explorer-k { display: block; font: 700 8px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink); }
 .stop-explorer-name { display: block; font: 700 13px/1.25 var(--sans); color: var(--text-hi); margin-top: 3px; }

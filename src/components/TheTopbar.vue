@@ -46,7 +46,7 @@ const { searchQuery, buscar } = useSearch()
 
 <style>
 /* Topbar — usa los tokens globales (:root en App). No scoped: clases únicas de la barra. */
-.topbar { background: var(--bg); color: var(--text-hi); height: 54px; flex: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--border); }
+.topbar { background: var(--glass-bg-strong); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); height: 54px; flex: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--glass-brd); box-shadow: var(--shadow-sm); position: relative; z-index: 20; }
 .topbar-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .topbar-logo { width: 28px; height: 28px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex: none; border-radius: 9px; }
 .topbar-titles { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
