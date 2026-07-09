@@ -14,6 +14,20 @@
  */
 
 const DNPRC = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/Consulta_DNPRC';
+const RCCOOR = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR';
+
+/**
+ * Coordenadas (EPSG:4326) → referencia catastral de 14 (parcela/finca), o null si no hay
+ * parcela en ese punto. Es el primer paso del flujo de finca: el clic da lng/lat, esto da la
+ * RC de 14 que luego consume fetchFinca.
+ */
+export async function fetchRefFromCoords(lng, lat) {
+  const url = `${RCCOOR}?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}`;
+  const doc = new DOMParser().parseFromString(await (await fetch(url)).text(), 'text/xml');
+  const pc1 = doc.getElementsByTagName('pc1')[0]?.textContent || '';
+  const pc2 = doc.getElementsByTagName('pc2')[0]?.textContent || '';
+  return pc1 && pc2 ? pc1 + pc2 : null;
+}
 
 const txt = (el, tag) => el?.getElementsByTagName(tag)[0]?.textContent?.trim() || null;
 const num = (el, tag) => {

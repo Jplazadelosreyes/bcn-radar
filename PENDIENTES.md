@@ -103,6 +103,13 @@ Monolito roto en piezas de responsabilidad única, todo commiteado en `main`:
 - Movilidad: config en `config/` + 3 stores (`useTransporteModos`, `useExploradorParadas`,
   `useCapasDatos`) + estado compartido `transporteState`.
 - Mapa: `useFincaPicker` fuera de MapCanvas.
+- Popups del mapa centralizados en `services/map-popups.js` (plantillas reutilizables).
+- Acceso a APIs externas en `services/`: geocoding Nominatim → `services/geocode.js`
+  (`geocodeAddress` + `reverseGeocode`, lo comparten useSearch y useFincaPicker); coords→RC del
+  Catastro → `catastro.js` (`fetchRefFromCoords`). Ningún composable hace fetch a Nominatim/
+  Catastro inline. (Queda el GetCapabilities WMS en useLayers = cohesión del dominio de capas.)
+- Sistema visual glass: tokens `--glass-*`/`--shadow-*` en tokens.css (panel editable) + chrome
+  de escritorio (sidebar/topbar/flotantes) con vidrio esmerilado.
 - 19 tests · salvaguarda `max-lines` activa.
 
 **PENDIENTE real ahora = FIXES** (tras verificación en navegador del operador). Lo opcional que

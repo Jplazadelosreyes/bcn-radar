@@ -9,8 +9,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
 import maplibregl from 'maplibre-gl'
-import { fetchFinca } from '../services/catastro.js'
+import { fetchFinca, fetchRefFromCoords } from '../services/catastro.js'
 import { fetchAfectaciones } from '../services/piu.js'
+import { reverseGeocode } from '../services/geocode.js'
 import { fincaPopup } from '../services/map-popups.js'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
@@ -41,13 +42,11 @@ export function useFincaPicker() {
       marker.current = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).addTo(map)
     }
 
-    // Reverse Geocoding (traducir coordenadas a calle y número)
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+    // Reverse Geocoding (coordenadas → calle y número) vía services/geocode
     try {
-      const response = await fetch(url)
-      const data = await response.json()
+      const data = await reverseGeocode(lat, lng)
 
-      if (data && data.address) {
+      if (data) {
         const calle = data.address.road || data.address.pedestrian || 'Calle Desconocida'
         const numero = data.address.house_number || ''
         const direccionCorta = `${calle} ${numero}`.trim()
@@ -64,15 +63,12 @@ export function useFincaPicker() {
       // Datos catastrales REALES: coords → ref. de parcela (14) → finca (edificio + unidad)
       fincaData.value = { ...fincaData.value, estado: 'cargando', refCatastral: null }
       try {
-        const coordUrl = `https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/Consulta_RCCOOR?SRS=EPSG:4326&Coordenada_X=${lng}&Coordenada_Y=${lat}`
-        const coordDoc = new DOMParser().parseFromString(await (await fetch(coordUrl)).text(), 'text/xml')
-        const pc1 = coordDoc.getElementsByTagName('pc1')[0]?.textContent || ''
-        const pc2 = coordDoc.getElementsByTagName('pc2')[0]?.textContent || ''
+        const rc14 = await fetchRefFromCoords(lng, lat)
 
-        if (!pc1 || !pc2) {
+        if (!rc14) {
           fincaData.value = { estado: 'sin-parcela', refCatastral: null, rcInmueble: null, ano: null, superficie: null, uso: null, coefParticipacion: null, nInmuebles: null, plantas: null }
         } else {
-          const finca = await fetchFinca(pc1 + pc2)
+          const finca = await fetchFinca(rc14)
           fincaData.value = {
             estado: 'ok',
             refCatastral: finca.rc14,
