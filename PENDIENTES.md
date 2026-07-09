@@ -31,8 +31,18 @@ para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes dis
   quedan). El operador ahora cura el catálogo editando `config/`. Cero cambio de comportamiento.
 - **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
 
-**Próximos candidatos**: (a) `FichaFinca.vue` (293) en sub-bloques (BloqueCatastro/PIU/Valor/
-Checklist); (b) partir la LÓGICA de useMovilidad (397) en composables por dominio —
+### Sub-hito: partir FichaFinca en bloques presentacionales
+
+- **FichaFinca.vue: 293 → 78 líneas** (orquestador: cabecera + estado vacío + montaje de bloques
+  + acción exportar). Nuevo dir `components/sidebar/ficha/finca/` con 7 bloques que consumen
+  useFinca/useRadio por su cuenta: `BloqueCatastro` (76, gestiona sus estados de carga),
+  `BloquePIU` (70), `BloquePrivado` (47), `BloqueTransporte` (25), `BloqueValor` (31),
+  `BloqueLectura` (20), `BloqueCumplimiento` (18). Reutilizan los átomos FichaDoc/FichaVeredicto.
+- La orquestación (v-if de estado `ok` y de existencia de radioStops/veredictos) se queda visible
+  en FichaFinca; los bloques son "tontos". Cero cambio de comportamiento.
+- **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
+
+**Próximo candidato**: partir la LÓGICA de useMovilidad (397) en composables por dominio —
 `useTransporteModos` / `useCapasDatos` / `useExploradorParadas` — pero comparten `selectedStop`
 y el estado de líneas (explorador unificado GTFS+Overpass): más delicado, evaluar antes.
 
