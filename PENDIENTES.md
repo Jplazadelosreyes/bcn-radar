@@ -3,6 +3,25 @@
 > Estado al **2026-07-09**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
 > nueva: resume qué está hecho, qué falta y en qué orden. Actualízalo al cerrar cada sesión.
 
+## HECHO — sesión 2026-07-09 (partición de InfoDossier)
+
+Segunda pasada de segmentación: el operador quiere cada responsabilidad en su propio archivo
+para trabajarlas de forma independiente. `InfoDossier.vue` era 5 componentes disfrazados de uno
+(cadena `v-if` por nivel de zoom) + dos átomos visuales repetidos ~10-12 veces.
+
+- **InfoDossier.vue: 579 → 48 líneas** — ahora un switch: `<component :is>` elige la ficha por
+  `mapContext.level` y calcula `infoCtx`. Nuevo dir `components/sidebar/ficha/`:
+  `FichaCiudad` (68), `FichaDistrito`/`FichaBarrio`/`FichaSeccion` (41 c/u), `FichaFinca` (293).
+- **Átomos** `ficha/FichaVeredicto.vue` (bloque veredicto dot+título+desc) y `ficha/FichaDoc.vue`
+  (enlace a fuente oficial con badge) — dejan de repetirse en todos los niveles.
+- **Tipo fuente única** en useFinca: `export type VerTone` + `interface Veredicto`; lo consumen
+  `claveSistema`, `veredictos` y el átomo. Cada ficha consume los stores singleton que necesita
+  (sin prop-drilling). Cero cambio de comportamiento.
+- **Verde**: typecheck 0 · eslint limpio · 10 tests · build OK. Falta verificación en navegador.
+
+**Próximo candidato natural**: `useMovilidad.ts` (519) — config declarativa + loaders + estado
+GTFS mezclados (= PENDIENTE #1). Opcional: partir `FichaFinca` (293) en sub-bloques.
+
 ## Objetivo del producto
 
 Escáner de propiedad de Barcelona: clic en cualquier parcela → dossier completo (urbanismo,

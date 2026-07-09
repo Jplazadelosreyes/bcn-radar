@@ -8,6 +8,10 @@ import { ref, computed } from 'vue'
 import { classificLabel } from '../services/piu.js'
 
 export type FincaEstado = 'vacio' | 'cargando' | 'ok' | 'sin-parcela' | 'error'
+// Tono de los bloques de "veredicto" (punto de color + borde). Fuente única del tipo:
+// lo consumen claveSistema, veredictos y el átomo Veredicto.vue del dossier.
+export type VerTone = 'blue' | 'amber' | 'green' | 'red'
+export interface Veredicto { tone: VerTone; titulo: string; desc: string }
 export interface FincaData {
   estado: FincaEstado
   refCatastral: string | null
@@ -43,7 +47,7 @@ const valorZona = ref<{ renda: number; any: string | number; contratos: number }
 const classific = classificLabel
 
 // ¿La clave urbanística es de sistema (5 viario / 7 equipamiento)? → riesgo de afectación
-const claveSistema = computed(() => {
+const claveSistema = computed<Veredicto | null>(() => {
   const c = afectaciones.value?.qualificacio?.clau || ''
   if (/^5/.test(c)) return { tone: 'red', titulo: `Clave ${c} · Sistema viario`, desc: 'Suelo reservado para vial. Riesgo de expropiación total o parcial. Verifica el alcance antes de comprometerte.' }
   if (/^7/.test(c)) return { tone: 'red', titulo: `Clave ${c} · Equipamientos`, desc: 'Suelo reservado para equipamiento público (colegio, sanitario, etc.). Riesgo de afectación.' }
@@ -64,10 +68,10 @@ const antiguedad = computed(() => (fincaData.value.ano ? new Date().getFullYear(
 const supUtilEstimada = computed(() => (fincaData.value.superficie ? Math.round(fincaData.value.superficie * 0.85) : null))
 
 // ── Lectura crítica: cruza un DATO REAL del Catastro con REGULACIÓN real (ITE, LPH, uso) ──
-const veredictos = computed(() => {
+const veredictos = computed<Veredicto[]>(() => {
   if (fincaData.value.estado !== 'ok') return []
   const f = fincaData.value
-  const v = []
+  const v: Veredicto[] = []
   if (antiguedad.value != null) {
     if (antiguedad.value > 45) {
       v.push({ tone: 'amber', titulo: `Edificio de ${antiguedad.value} años · ITE obligatoria`, desc: 'En Cataluña los edificios de más de 45 años deben pasar la Inspección Técnica (ITE). Exige el Certificado de Aptitud vigente; sin él, riesgo de derramas estructurales.' })
