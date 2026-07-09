@@ -98,7 +98,7 @@ La topbar tiene su CSS propio dentro de `src/components/TheTopbar.vue` (`<style>
 | Explorador de parada (líneas → recorrido) | `src/components/map/StopExplorer.vue` + `src/composables/useExploradorParadas.ts` |
 | Chips de líneas por modo | `src/components/sidebar/movilidad/TransporteSection.vue` + `useTransporteModos.ts` |
 | Capas de datos (Bicing/POI/temp) | `src/components/sidebar/movilidad/CapasDatosSection.vue` + `useCapasDatos.ts` |
-| Capas WMS + parcelas | `src/components/sidebar/CapasCard.vue` + `useLayers.ts` |
+| Capas WMS + parcelas | `src/components/sidebar/CapasCard.vue` + `useLayers.ts` · **catálogo editable**: `src/config/capas-wms.ts` |
 | Zonas administrativas + renta | `src/components/sidebar/ZonasCard.vue` + `useZones.ts` |
 | Mapa base / 3D / medir / radio | `src/components/map/MapControls.vue` (+ `useMapTools`, `useMeasure`, `useRadio`) |
 
