@@ -7,12 +7,14 @@ import { computed } from 'vue'
 import { useLayers } from '../../composables/useLayers'
 import { useCapasDatos } from '../../composables/useCapasDatos'
 import { useZones } from '../../composables/useZones'
+import { useTransporteModos } from '../../composables/useTransporteModos'
 
 const { activeChips: urbanismo } = useLayers()
 const { activeChips: datos } = useCapasDatos()
 const { activeChips: zonas } = useZones()
+const { activeChips: transporte } = useTransporteModos()
 
-const chips = computed(() => [...urbanismo.value, ...datos.value, ...zonas.value])
+const chips = computed(() => [...urbanismo.value, ...datos.value, ...zonas.value, ...transporte.value])
 </script>
 
 <template>

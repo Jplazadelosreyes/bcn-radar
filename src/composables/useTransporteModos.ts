@@ -7,7 +7,7 @@
 //  explorador). `any` a nivel de archivo: LÍMITE con MapLibre + las features crudas de Overpass.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useMapStore } from './useMapStore'
 import { overpassFetch } from '../services/overpass.js'
 import { TRANSPORTES, TRANSPORT_BBOX, type TransporteModo } from '../config/transportes'
@@ -17,6 +17,7 @@ import {
 } from './transporteState'
 
 const transportStatus = ref<Record<string, LoadStatus>>({})
+const transportVisible = ref<Record<string, boolean>>({}) // key -> modo visible en el mapa (para el chip)
 const busSearch = ref('')
 const busExpanded = ref(false) // lista completa de buses desplegada
 
@@ -79,6 +80,7 @@ export function useTransporteModos() {
     const modeLayers = [`${srcId}-line`, `${srcId}-stops`, `${srcId}-labels`]
     if (map.getSource(srcId)) {
       modeLayers.forEach((id) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none') })
+      transportVisible.value = { ...transportVisible.value, [cfg.key]: visible }
       return
     }
     if (!visible) return
@@ -156,15 +158,22 @@ export function useTransporteModos() {
       transportLines.value = { ...transportLines.value, [cfg.key]: lineList }
       transportSelected.value = { ...transportSelected.value, [cfg.key]: Object.keys(linesMap) }
       transportStatus.value = { ...transportStatus.value, [cfg.key]: 'ok' }
+      transportVisible.value = { ...transportVisible.value, [cfg.key]: true }
     } catch (err) {
       console.warn('Overpass transporte', cfg.key, err)
       transportStatus.value = { ...transportStatus.value, [cfg.key]: 'error' }
     }
   }
 
+  // Modos de transporte visibles → chips activos (etiqueta corta: "Rodalies / Renfe" → "Rodalies").
+  const activeChips = computed(() =>
+    TRANSPORTES.filter((t) => transportVisible.value[t.key])
+      .map((t) => ({ id: `tr:${t.key}`, label: t.label.split(' / ')[0], off: () => loadTransport(t, false) })),
+  )
+
   return {
     TRANSPORTES,
     transportStatus, transportLines, transportSelected, busSearch, busExpanded,
-    chipsFor, setAllLines, toggleLine, loadTransport, applyLineFilter,
+    chipsFor, setAllLines, toggleLine, loadTransport, applyLineFilter, activeChips,
   }
 }
