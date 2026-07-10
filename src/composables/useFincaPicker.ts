@@ -16,11 +16,13 @@ import { fincaPopup } from '../services/map-popups.js'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
 import { useSearch } from './useSearch'
+import { usePanels } from './usePanels'
 
 export function useFincaPicker() {
   const { marker } = useMapStore()
   const { fincaData, clickedCoords, selectedAddress, afectaciones } = useFinca()
   const { searchQuery } = useSearch()
+  const { openSection } = usePanels()
 
   // Selecciona la finca en un punto: PIU + pin + geocoding + Catastro. `map` es la instancia
   // MapLibre; `lngLat` el punto del clic. Asume que el llamador ya validó el zoom/guards.
@@ -28,6 +30,7 @@ export function useFincaPicker() {
     const lat = lngLat.lat
     const lng = lngLat.lng
     clickedCoords.value = { lat, lng }
+    openSection('info') // abre el dossier solo, como Google Maps al tocar un sitio
 
     // Situación urbanística (PIU) — en paralelo al Catastro, sin bloquearlo
     afectaciones.value = { estado: 'cargando' }

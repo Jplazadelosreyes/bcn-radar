@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { usePanels } from './composables/usePanels'
 import { useSheetDrag } from './composables/useSheetDrag'
 import { useExploradorParadas } from './composables/useExploradorParadas'
-import TheTopbar from './components/TheTopbar.vue'
 import MapCanvas from './components/map/MapCanvas.vue'
+import MapRail from './components/map/MapRail.vue'
+import SearchBox from './components/map/SearchBox.vue'
 import MapFabs from './components/map/MapFabs.vue'
 import StopExplorer from './components/map/StopExplorer.vue'
 import MapControls from './components/map/MapControls.vue'
@@ -13,56 +14,46 @@ import CapasCard from './components/sidebar/CapasCard.vue'
 import MovilidadCard from './components/sidebar/MovilidadCard.vue'
 import ZonasCard from './components/sidebar/ZonasCard.vue'
 
-// Paneles ocultables (composable singleton): todos parten colapsados, potencia incremental
-const { isMobile, sidebarOpen, controlsOpen, utilsOpen } = usePanels()
+// Navegación por rail (escritorio) / bottom sheet (móvil). Una sección abierta a la vez;
+// el mapa es el protagonista y el panel flota sobre él (modelo Google Maps).
+const { controlsOpen, utilsOpen, activeSection, toggleSection, sidebarOpen } = usePanels()
 
-// Bottom sheets (móvil) con arrastre real en el asa y snap de 3 estados:
-// compacto ⇄ expandido (arrastrar arriba) ⇄ cerrado (arrastrar abajo desde compacto).
-// Bajar estando expandido colapsa además todas las cards (vuelta al estado mínimo).
-// Arrastre del asa de los sheets (composable compartido). El sidebar colapsa las cards
-// al bajar desde expandido; los controles no lo necesitan (importan useSheetDrag sin callback).
-const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { cardOpen.value = {} })
+// Arrastre del asa del bottom sheet (móvil): al bajar del todo, cierra la sección.
+const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { activeSection.value = null })
 
 // Explorador de parada (store useExploradorParadas): lo consume el StopExplorer del área del mapa.
 const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useExploradorParadas()
 
-// Cards del sidebar: expansión INDEPENDIENTE (se pueden mezclar capas de varias:
-// metro + distritos, etc.). En móvil el sheet abre con todo colapsado (incremental).
-const cardOpen = ref<Record<string, boolean>>(isMobile.value ? {} : { info: true }) // id -> abierta
-function toggleCard(id: string) { cardOpen.value = { ...cardOpen.value, [id]: !cardOpen.value[id] } }
-watch(sidebarOpen, (open) => { if (open && isMobile.value) { cardOpen.value = {}; sheetFull.value = false } })
+// El panel del sidebar está abierto cuando hay una sección activa.
+watch(activeSection, (s) => { if (!s) { sidebarOpen.value = false; sheetFull.value = false } else { sidebarOpen.value = true } })
+function closePanel() { activeSection.value = null }
 </script>
 
 <template>
   <div class="app-container">
-    <TheTopbar />
-    
     <main class="main-content">
-      
-      <!-- PANEL LATERAL (IZQUIERDA) -->
-      <aside class="sidebar" :class="{ open: sidebarOpen, full: sheetFull }">
-        <button class="sheet-handle" @click="sidebarOpen = false" @touchstart.passive="sheetTouchStart" @touchmove.passive="sheetTouchMove" @touchend="(e) => sheetTouchEnd(e, () => (sidebarOpen = false), true)" title="Cerrar" aria-label="Cerrar panel"><span></span></button>
-        <button class="panel-close" @click="sidebarOpen = false" title="Cerrar">✕</button>
-
-        <!-- INFORMACIÓN — dossier contextual que sigue el nivel de zoom (ciudad→distrito→barrio→sección→finca) -->
-        <InfoDossier :open="!!cardOpen['info']" @toggle="toggleCard('info')" />
-
-        <!-- CAPAS PÚBLICAS — agregador WMS (persistente, sobre las fichas contextuales) -->
-        <CapasCard :open="!!cardOpen['capas']" @toggle="toggleCard('capas')" />
-
-        <!-- MOVILIDAD Y SERVICIOS — capas de datos abiertos en vivo -->
-        <MovilidadCard :open="!!cardOpen['mov']" @toggle="toggleCard('mov')" />
-
-        <!-- ZONAS ADMINISTRATIVAS — límites de distritos y barrios -->
-        <ZonasCard :open="!!cardOpen['zonas']" @toggle="toggleCard('zonas')" />
-
-      </aside>
-
-      <!-- MAPA Y SUS CONTROLES (DERECHA) -->
-      <div class="map-section" :class="{ 'utils-collapsed': !utilsOpen, 'sheet-open': sidebarOpen || controlsOpen || !!selectedStop }">
+      <!-- ESCENARIO: el mapa a pantalla completa; todo lo demás flota encima -->
+      <div class="map-section" :class="{ 'utils-collapsed': !utilsOpen, 'sheet-open': !!activeSection || controlsOpen || !!selectedStop }">
         <MapCanvas />
 
-        <!-- FABs sobre el mapa (utilidades/tema + reabrir paneles) -->
+        <!-- Buscador flotante (sin barra superior) -->
+        <SearchBox />
+
+        <!-- Rail de secciones (escritorio izquierda · móvil barra inferior) -->
+        <MapRail />
+
+        <!-- PANEL DE LA SECCIÓN ACTIVA (flota junto al rail / bottom sheet en móvil) -->
+        <aside v-show="activeSection" class="sidebar" :class="{ open: !!activeSection, full: sheetFull }">
+          <button class="sheet-handle" @click="closePanel" @touchstart.passive="sheetTouchStart" @touchmove.passive="sheetTouchMove" @touchend="(e) => sheetTouchEnd(e, closePanel, true)" title="Cerrar" aria-label="Cerrar panel"><span></span></button>
+          <button class="panel-close" @click="closePanel" title="Cerrar">✕</button>
+
+          <InfoDossier v-if="activeSection === 'info'" :open="true" @toggle="toggleSection('info')" />
+          <CapasCard v-else-if="activeSection === 'capas'" :open="true" @toggle="toggleSection('capas')" />
+          <MovilidadCard v-else-if="activeSection === 'mov'" :open="true" @toggle="toggleSection('mov')" />
+          <ZonasCard v-else-if="activeSection === 'zonas'" :open="true" @toggle="toggleSection('zonas')" />
+        </aside>
+
+        <!-- FABs sobre el mapa (utilidades/tema + reabrir controles) -->
         <MapFabs />
 
         <!-- Explorador de parada: líneas que pasan → elegir una dibuja su recorrido -->
@@ -73,7 +64,6 @@ watch(sidebarOpen, (open) => { if (open && isMobile.value) { cardOpen.value = {}
         <!-- Controles flotantes del mapa (Abajo Derecha) -->
         <MapControls />
       </div>
-      
     </main>
   </div>
 </template>

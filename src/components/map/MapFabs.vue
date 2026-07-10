@@ -5,7 +5,7 @@
 import { usePanels } from '../../composables/usePanels'
 import { useTheme } from '../../composables/useTheme'
 
-const { sidebarOpen, controlsOpen, utilsOpen, openSidebar, openControls, toggleUtils } = usePanels()
+const { isMobile, controlsOpen, utilsOpen, activeSection, openSection, openControls, toggleUtils } = usePanels()
 const { theme, toggleTheme } = useTheme()
 </script>
 
@@ -18,8 +18,8 @@ const { theme, toggleTheme } = useTheme()
     <span v-if="theme === 'dark'">☀</span><span v-else>☾</span>
   </button>
 
-  <!-- Botones para abrir paneles (visibles cuando el panel está cerrado; clave en móvil) -->
-  <button v-if="!sidebarOpen" class="fab fab-info" @click="openSidebar()" title="Información y capas">
+  <!-- Menú de secciones: SOLO móvil (en escritorio lo reemplaza el rail lateral) -->
+  <button v-if="isMobile && !activeSection" class="fab fab-info" @click="openSection('info')" title="Información y capas">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
   </button>
   <button v-if="!controlsOpen" class="fab fab-map" @click="openControls()" title="Capas y controles del mapa">

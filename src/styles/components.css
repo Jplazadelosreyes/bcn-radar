@@ -71,7 +71,7 @@
 @media (min-width: 681px) {
   .main-content { position: relative; }
   .sidebar {
-    position: absolute; top: 16px; left: 16px; width: 400px;
+    position: absolute; top: 16px; left: 82px; width: 400px;   /* left: 82px = deja sitio al rail */
     height: auto; max-height: calc(100% - 32px);   /* abraza el contenido, tope con margen inferior */
     border-right: 0; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); border-radius: 20px;
     /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
