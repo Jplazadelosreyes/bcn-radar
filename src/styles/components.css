@@ -18,6 +18,11 @@
 /* Escritorio: los paneles colapsados desaparecen (en móvil se deslizan fuera con transform) */
 @media (min-width: 681px) {
   .sidebar:not(.open), .map-floating-controls:not(.open) { display: none; }
+  /* Controles nativos del mapa (zoom · brújula · pantalla completa · GPS · rosa) consolidados
+     ABAJO-DERECHA, estilo Google Maps. Anclados por su borde inferior, se apilan hacia arriba. */
+  .maplibregl-ctrl-top-right { top: auto; bottom: 78px; right: 10px; }
+  /* El botón de capas (abre el panel de controles) baja a la esquina inferior derecha */
+  .fab-map { top: auto; bottom: 20px; right: 14px; }
 }
 
 /* ═══ Controles flotantes del mapa ═══ */
