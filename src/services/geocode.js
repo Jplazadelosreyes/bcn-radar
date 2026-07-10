@@ -19,3 +19,29 @@ export async function reverseGeocode(lat, lng) {
   const data = await (await fetch(url)).json()
   return data && data.address ? data : null
 }
+
+// Etiqueta corta y legible para una sugerencia (calle + número · barrio/zona).
+function shortLabel(r) {
+  const a = r.address || {}
+  const via = a.road || a.pedestrian || a.neighbourhood || a.suburb || r.name || ''
+  const num = a.house_number ? ` ${a.house_number}` : ''
+  const zona = a.suburb || a.city_district || a.town || a.village || a.city || ''
+  const base = `${via}${num}`.trim()
+  return base ? (zona && zona !== via ? `${base} · ${zona}` : base) : r.display_name
+}
+
+// Autocompletado: varias direcciones para un texto PARCIAL, acotado a España/Barcelona.
+// Devuelve [] con menos de 3 caracteres (no molesta a Nominatim). Cada ítem trae coords,
+// etiqueta corta (para el input) y la larga (display_name, para el popup).
+export async function suggestAddresses(query, limit = 6) {
+  const q = query.trim()
+  if (q.length < 3) return []
+  const url = `${BASE}/search?format=json&addressdetails=1&limit=${limit}&countrycodes=es&q=${encodeURIComponent(q + ', Barcelona')}`
+  const results = await (await fetch(url)).json()
+  return (results || []).map((r) => ({
+    lat: Number(r.lat),
+    lng: Number(r.lon),
+    short: shortLabel(r),
+    label: r.display_name,
+  }))
+}

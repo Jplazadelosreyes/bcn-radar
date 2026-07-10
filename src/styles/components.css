@@ -71,8 +71,9 @@
 @media (min-width: 681px) {
   .main-content { position: relative; }
   .sidebar {
-    position: absolute; top: 16px; left: 82px; width: 400px;   /* left: 82px = deja sitio al rail */
-    height: auto; max-height: calc(100% - 32px);   /* abraza el contenido, tope con margen inferior */
+    /* Columna izquierda: alineada con el buscador (left:82) y justo debajo de él (top:72). */
+    position: absolute; top: 72px; left: 82px; width: min(400px, calc(100vw - 110px));
+    height: auto; max-height: calc(100% - 88px);   /* deja sitio al buscador arriba + margen abajo */
     border-right: 0; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); border-radius: 20px;
     /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
     background: var(--glass-bg);

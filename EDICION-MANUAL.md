@@ -68,7 +68,8 @@ En `tokens.css`: `--r-card`, `--r-inner`, `--r-pill`.
 
 ### Estilos concretos de un trozo de chrome
 `src/styles/components.css` (sidebar, cards, ficha, capas…) y `src/styles/responsive.css` (móvil).
-La topbar tiene su CSS propio dentro de `src/components/TheTopbar.vue` (`<style>`).
+El rail y el buscador flotante tienen su CSS propio dentro de sus SFC: `src/components/map/
+MapRail.vue` (`<style>`) y `src/components/map/SearchBox.vue` (`<style>`).
 
 ---
 
@@ -94,7 +95,8 @@ La topbar tiene su CSS propio dentro de `src/components/TheTopbar.vue` (`<style>
 ### Otros selectores / controles
 | Selector | Archivo |
 |---|---|
-| Buscador (topbar) | `src/composables/useSearch.ts` + `src/components/TheTopbar.vue` |
+| Buscador + autocompletado | `src/components/map/SearchBox.vue` + `useSearch.ts` (sugerencias) + `services/geocode.js` (`suggestAddresses`) |
+| Rail de secciones + tema | `src/components/map/MapRail.vue` (navegación · `usePanels.activeSection`) |
 | Explorador de parada (líneas → recorrido) | `src/components/map/StopExplorer.vue` + `src/composables/useExploradorParadas.ts` |
 | Chips de líneas por modo | `src/components/sidebar/movilidad/TransporteSection.vue` + `useTransporteModos.ts` |
 | Capas de datos (Bicing/POI/temp) | `src/components/sidebar/movilidad/CapasDatosSection.vue` + `useCapasDatos.ts` |
@@ -122,7 +124,8 @@ La topbar tiene su CSS propio dentro de `src/components/TheTopbar.vue` (`<style>
 | Botones flotantes (info / reabrir paneles / tema / GPS) | `src/components/map/MapFabs.vue` |
 | Panel de controles (abajo-derecha) | `src/components/map/MapControls.vue` |
 | Explorador de parada | `src/components/map/StopExplorer.vue` |
-| Barra superior (marca + buscador + tema) | `src/components/TheTopbar.vue` |
+| Rail de secciones (izquierda) + tema día/noche | `src/components/map/MapRail.vue` |
+| Buscador flotante + autocompletado | `src/components/map/SearchBox.vue` |
 
 **Capas de transporte / datos** (su `paint` y su clic): en sus stores —
 `useTransporteModos.ts` (líneas por modo), `useExploradorParadas.ts` (paradas GTFS + recorridos),
