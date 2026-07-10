@@ -5,7 +5,7 @@
 //  `any` acotado: frontera con MapLibre (expresiones de estilo, feature-state, features).
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore'
 import { loadZones } from '../services/zones.js'
@@ -133,5 +133,14 @@ export function useZones() {
     }
   }
 
-  return { zoneOn, zoneStatus, rentaOn, rentaStatus, rentaAny, toggleZone, toggleRenta }
+  // Zonas encendidas → chips activos (para la barra superior).
+  const ZONE_LABEL: Record<string, string> = { districtes: 'Distritos', barris: 'Barrios', seccions: 'Secciones' }
+  const activeChips = computed(() => {
+    const chips: { id: string; label: string; off: () => void }[] = []
+    for (const k of Object.keys(ZONE_LABEL)) if (zoneOn.value[k]) chips.push({ id: `zone:${k}`, label: ZONE_LABEL[k], off: () => toggleZone(k) })
+    if (rentaOn.value) chips.push({ id: 'renta', label: 'Renta', off: () => toggleRenta() })
+    return chips
+  })
+
+  return { zoneOn, zoneStatus, rentaOn, rentaStatus, rentaAny, toggleZone, toggleRenta, activeChips }
 }

@@ -6,6 +6,7 @@ import { useExploradorParadas } from './composables/useExploradorParadas'
 import MapCanvas from './components/map/MapCanvas.vue'
 import MapRail from './components/map/MapRail.vue'
 import SearchBox from './components/map/SearchBox.vue'
+import ActiveLayerChips from './components/map/ActiveLayerChips.vue'
 import MapFabs from './components/map/MapFabs.vue'
 import StopExplorer from './components/map/StopExplorer.vue'
 import MapControls from './components/map/MapControls.vue'
@@ -38,6 +39,9 @@ function closePanel() { activeSection.value = null }
 
         <!-- Buscador flotante (sin barra superior) -->
         <SearchBox />
+
+        <!-- Chips de capas ACTIVAS (arriba, estilo filtros de Google Maps) -->
+        <ActiveLayerChips />
 
         <!-- Rail de secciones (escritorio izquierda · móvil barra inferior) -->
         <MapRail />

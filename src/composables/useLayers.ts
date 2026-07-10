@@ -3,7 +3,7 @@
 //  Estado + acciones que crean/alternan capas raster en el mapa. El catálogo declarativo de
 //  fuentes vive en config/capas-wms (añadir una fuente = editar ese archivo).
 // ═══════════════════════════════════════════════════════════════════════════════
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useMapStore } from './useMapStore'
 import { describeLayer } from '../services/layer-info.js'
 import { WMS_SOURCES, type WmsSource, type WmsLayer } from '../config/capas-wms'
@@ -92,10 +92,22 @@ export function useLayers() {
     }
   }
 
+  // Parcelas + capas WMS encendidas → chips activos (para la barra superior).
+  const activeChips = computed(() => {
+    const chips: { id: string; label: string; off: () => void }[] = []
+    if (fincasOn.value) chips.push({ id: 'fincas', label: 'Parcelas', off: () => toggleFincas() })
+    for (const src of WMS_SOURCES) {
+      for (const l of src.layers) {
+        if (wmsActive.value[layerKey(src.id, l.name)]) chips.push({ id: layerKey(src.id, l.name), label: l.label, off: () => toggleWms(src, l) })
+      }
+    }
+    return chips
+  })
+
   return {
     WMS_SOURCES, layerKey,
     fincasOn, toggleFincas,
     wmsExpanded, wmsShowAll, wmsActive, wmsAllLayers, wmsAllStatus,
-    toggleWmsExpand, toggleWms, loadAllWms,
+    toggleWmsExpand, toggleWms, loadAllWms, activeChips,
   }
 }

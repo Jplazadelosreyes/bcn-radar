@@ -9,10 +9,13 @@
 //  `any` a nivel de archivo: LÍMITE con las expresiones imperativas de MapLibre.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ═══════════════════════════════════════════════════════════════════════════════
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore'
 import { MOVILIDAD, poiDate, type MovLayer } from '../config/capas-datos'
+
+// Etiqueta corta para el chip (sin el paréntesis "(tiempo real)" etc.)
+const chipLabel = (s: string) => s.replace(/\s*\(.*?\)\s*/g, '').trim()
 
 type LoadStatus = 'loading' | 'ok' | 'error'
 
@@ -74,5 +77,12 @@ export function useCapasDatos() {
     }
   }
 
-  return { MOVILIDAD, poiDate, dataActive, dataStatus, toggleData }
+  // Capas de datos actualmente encendidas → chips activos (para la barra superior).
+  const activeChips = computed(() =>
+    MOVILIDAD.flatMap((g) => g.layers)
+      .filter((l) => dataActive.value[l.id])
+      .map((l) => ({ id: `data:${l.id}`, label: chipLabel(l.label), off: () => toggleData(l) })),
+  )
+
+  return { MOVILIDAD, poiDate, dataActive, dataStatus, toggleData, activeChips }
 }
