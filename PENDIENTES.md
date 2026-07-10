@@ -1,7 +1,38 @@
 # BCN Radar — Pendientes y hoja de ruta
 
-> Estado al **2026-07-09**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
+> Estado al **2026-07-10**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
 > nueva: resume qué está hecho, qué falta y en qué orden. Actualízalo al cerrar cada sesión.
+
+## HECHO — sesión 2026-07-10 (rediseño UI estilo Google Maps)
+
+Se rediseñó la navegación para dar protagonismo al mapa (la barra superior "no aportaba"). Todo
+commiteado en `main`. Verde: typecheck 0 · eslint limpio · 19 tests · build OK. Dev: `--port 5174`.
+
+- **Fuera la topbar** (`TheTopbar.vue` borrado). Mapa a pantalla completa; todo flota encima.
+- **Rail de iconos a la izquierda** (`components/map/MapRail.vue`): Info/Capas/Movilidad/Zonas,
+  una sección abierta a la vez, activa con borde; tema día/noche al fondo del rail. Estado en
+  `usePanels` (`activeSection`/`toggleSection`/`openSection`). Al clicar finca abre 'info' solo.
+- **Buscador flotante** (`components/map/SearchBox.vue`) sin botón "Buscar" + **AUTOCOMPLETADO**
+  de direcciones (`services/geocode.js` `suggestAddresses`; `useSearch` con debounce 350ms +
+  `pickSuggestion`). Buscador y panel alineados (columna izq, `left:82`, ancho reactivo).
+- **Sistema visual glass**: tokens `--glass-*`/`--shadow-*` en `tokens.css` (editables) aplicados
+  al chrome. Ver `EDICION-MANUAL.md` para dónde tocar cada cosa a mano.
+- **Chips de capas ACTIVAS arriba** (`components/map/ActiveLayerChips.vue`, estilo "filtros" de
+  Google): solo muestran lo encendido, un clic apaga. Cada dominio expone `activeChips` (useLayers,
+  useCapasDatos, useZones, useTransporteModos con nuevo `transportVisible`). Color **azul** (--carto).
+  El chip ES el estado de la capa → sincronización perfecta, imposible desincronizar.
+- **Controles nativos a abajo-derecha** en escritorio (`components.css` @media min-width:681px).
+
+### RETOMAR AQUÍ (pendientes de esta línea de trabajo)
+1. **Ajuste fino de posiciones abajo-derecha** (hecho a ciegas, sin WebGL): `.maplibregl-ctrl-top-right`
+   (bottom:78 right:10) y `.fab-map` (bottom:20 right:14) en `components.css` @media escritorio.
+   Pueden solaparse con el indicador de zoom / atribución. Requiere ojo del operador + captura.
+2. **Modo móvil** (pospuesto a propósito): el rail se OCULTA en móvil (`@media max-width:680px`),
+   así que Capas/Movilidad/Zonas quedan sin acceso; el ☰ (fab-info, solo-móvil) abre solo 'info';
+   los chips activos se ocultan en móvil. Opciones a decidir: rail como barra inferior (bottom nav)
+   o el ☰ abre menú de secciones. También adaptar chips + controles a móvil.
+3. **"Facilitar activar las capas"** (idea del operador, a definir): cómo hacer más rápido encender
+   las capas que suben como chip (hoy se activan dentro de los paneles del rail).
 
 ## HECHO — sesión 2026-07-09 (partición de InfoDossier)
 
