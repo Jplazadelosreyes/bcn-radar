@@ -42,15 +42,15 @@ const chips = computed(() => [...urbanismo.value, ...datos.value, ...zonas.value
 .active-chip {
   display: inline-flex; align-items: center; gap: 7px; flex: none;
   height: 34px; padding: 0 10px 0 11px; cursor: pointer;
-  border: 1px solid var(--accent); border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--accent) 14%, var(--glass-bg-strong));
+  border: 1px solid color-mix(in srgb, var(--carto) 55%, transparent); border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--carto) 13%, var(--glass-bg-strong));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  color: var(--accent-ink); font: 600 12px/1 var(--sans); white-space: nowrap;
+  color: var(--carto); font: 600 12px/1 var(--sans); white-space: nowrap;
   box-shadow: var(--shadow-sm);
 }
-.active-chip:hover { background: color-mix(in srgb, var(--accent) 22%, var(--glass-bg-strong)); }
-.active-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.active-chip:hover { background: color-mix(in srgb, var(--carto) 20%, var(--glass-bg-strong)); border-color: var(--carto); }
+.active-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--carto); flex: none; }
 .active-chip-x { font-size: 10px; opacity: .7; }
 .active-chip:hover .active-chip-x { opacity: 1; }
 
