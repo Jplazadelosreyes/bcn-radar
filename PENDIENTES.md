@@ -1,7 +1,46 @@
 # BCN Radar — Pendientes y hoja de ruta
 
-> Estado al **2026-07-10**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
+> Estado al **2026-07-15**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
 > nueva: resume qué está hecho, qué falta y en qué orden. Actualízalo al cerrar cada sesión.
+
+## HECHO — sesión 2026-07-14/15 (Chrome MCP + layout Google + móvil + sistema visual)
+
+Se conectó **chrome-devtools-mcp** (Chrome real, WebGL de verdad) → por fin se puede VER el
+render y auditar geometría. Todo commiteado y desplegado en `main`. Verde de punta a punta.
+
+- **Puerto propio: 5190** (`npm run dev` a secas; preview 5191, strictPort). Fin del choque con
+  Zerty Hub (:5173). En `vite.config.js`.
+- **Fix de raíz — orden de CSS**: `maplibre-gl.css` se importaba en MapCanvas → se inyectaba
+  DESPUÉS del nuestro y lo pisaba; cualquier reposición de sus controles era ignorada (el
+  `bottom:78px` de la sesión previa NUNCA se aplicó). Movido a `main.js` antes de `index.css`.
+- **Layout Google (escritorio)**: controles nativos en columna abajo-derecha (verificado en
+  x:1382); barra de capas nueva `MapLayersBar.vue` abajo-izquierda (miniaturas: tiles reales de
+  satélite/ortofoto + SVG de la retícula Cerdà para callejero/relieve); una sola brújula (se
+  desactivó la nativa, duplicaba la rosa); cursor tipo Google (flecha + grab al arrastrar).
+- **Móvil (Note 10+, verificado con Puppeteer sobre Chrome real)**: el rail se OCULTABA →
+  Capas/Movilidad/Zonas eran INALCANZABLES. Ahora el mismo rail es **barra inferior** (bottom
+  nav, 4 secciones). Token `--nav-h`/`--nav-safe`: todo el chrome inferior se apoya ahí. Chips
+  de filtro vuelven al móvil. Cero solapes en 6 estados medidos. Sheet: snap de 3 estados
+  arreglado (abajo-desde-expandido volvía a cerrar en vez de compactar).
+- **Viewport móvil**: `position:fixed` en body (ya no se puede "bajar" la página, el bug que
+  reportó el operador); `viewport-fit=cover` (los `env(safe-area-inset-*)` valían 0);
+  theme-color + mobile-web-app-capable; `lang="es"`.
+- **Sistema visual "Mediterrani" v3.1**: canto del vidrio en 2 capas (`--edge` tinta que recorta
+  + `--edge-hi` brillo) — el borde era blanco sobre panel blanco, invisible en día. Escala
+  tipográfica (`--fs-*`, suelo real 10px; había 8px ilegibles). `:focus-visible` global y
+  `prefers-reduced-motion` (no existían). Controles de MapLibre vestidos con nuestro material.
+
+### PENDIENTE INMEDIATO — las 2 etapas que pidió el operador (en orden)
+1. **CONTENIDO** (siguiente). Sin definir el alcance con el operador. Candidatos del backlog:
+   verificar el flujo clic-finca→dossier (nunca confirmado en vivo, ahora YA se puede con el MCP),
+   curar qué capas/datos entran, revisar el copy de las fichas, onboarding.
+2. **VISUAL / retoques** (al final). Incluye **Material Symbols** (los iconos del rail y las
+   cards siguen siendo emojis 📍🗂️🚌🗺️; el operador quiere los de Google, Apache-2.0) y el
+   ajuste fino del vidrio con el ojo del operador sobre cada basemap.
+
+### Herramientas de verificación (nuevas, en el scratchpad de la sesión)
+- `audit.mjs` (Puppeteer): emula Note 10+, mide cajas del chrome y reporta solapes por geometría.
+- `drag*.mjs`: prueban el gesto del sheet con TouchEvents reales. Reutilizables si vuelve a tocarse el layout.
 
 ## HECHO — sesión 2026-07-10 (rediseño UI estilo Google Maps)
 
