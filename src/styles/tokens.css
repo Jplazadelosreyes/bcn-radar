@@ -70,6 +70,11 @@
   /* Foco de teclado: anillo doble (halo del propio panel + anillo azul) para que se vea
      tanto sobre vidrio claro como sobre el mapa. */
   --ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--carto);
+
+  /* Altura de la barra de navegación inferior (móvil). Todo el chrome de abajo se apoya en
+     este número: cambiarlo aquí recoloca sheets, FABs, escala y controles a la vez. */
+  --nav-h: 58px;
+  --nav-safe: calc(var(--nav-h) + env(safe-area-inset-bottom));
 }
 /* ── Tema OSCURO (chrome + mapa) ── */
 html[data-theme="dark"] {

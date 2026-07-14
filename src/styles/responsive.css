@@ -16,20 +16,21 @@
   /* ── Bottom sheets como cards flotantes (patrón Google Maps + lenguaje de la cápsula):
      margen a los lados y abajo, 4 esquinas redondeadas; nunca alcanzan el buscador ── */
   .sidebar, .map-floating-controls {
-    position: fixed; left: 8px; right: 8px; bottom: 8px; top: auto;
+    position: fixed; left: 8px; right: 8px; bottom: calc(var(--nav-safe) + 8px); top: auto;
     width: auto; max-width: none; height: auto;
-    border-radius: 18px; border: 1px solid var(--border-2);
+    border-radius: 18px; border: 1px solid var(--edge);
     box-shadow: 0 -12px 34px rgba(0,0,0,.30); z-index: 1150;
     overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-    transform: translateY(110%); transition: transform .3s cubic-bezier(.3,.9,.3,1); will-change: transform;
+    transform: translateY(calc(100% + var(--nav-safe) + 8px));
+    transition: transform .3s cubic-bezier(.3,.9,.3,1); will-change: transform;
   }
   /* Alturas de anclaje medidas en dvh (viewport REAL del móvil, sin contar la barra del
      navegador) → el sheet nunca se cuela bajo el borde visible. Reservamos ~96px arriba
      para la cápsula de búsqueda flotante. */
-  .sidebar { max-height: calc(100dvh - 96px - env(safe-area-inset-top)); }
+  .sidebar { max-height: calc(100dvh - 96px - var(--nav-safe) - env(safe-area-inset-top)); }
   /* Estado expandido (arrastre hacia arriba): ocupa toda la altura disponible */
-  .sidebar.full { height: calc(100dvh - 96px - env(safe-area-inset-top)); }
-  .map-floating-controls { max-height: min(60dvh, calc(100dvh - 96px - env(safe-area-inset-top))); padding-top: 0; }
+  .sidebar.full { height: calc(100dvh - 96px - var(--nav-safe) - env(safe-area-inset-top)); }
+  .map-floating-controls { max-height: min(60dvh, calc(100dvh - 96px - var(--nav-safe) - env(safe-area-inset-top))); padding-top: 0; }
   .sidebar.open, .map-floating-controls.open { transform: translateY(0); }
 
   /* Con un sheet abierto, las utilidades del mapa no aplican: fade out limpio */
@@ -79,18 +80,22 @@
   /* Explorador de parada como card inferior (zona del pulgar), alineado al lenguaje
      de los sheets; los botones del mapa se desvanecen mientras está abierto */
   .stop-explorer {
-    top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-width: none;
+    top: auto; bottom: calc(var(--nav-safe) + 8px); left: 8px; right: 8px; width: auto; max-width: none;
     border-radius: 16px; clip-path: none; z-index: 1120;
-    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    padding: 14px 16px;
     background: color-mix(in srgb, var(--float-bg) 88%, transparent);
     -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
     box-shadow: 0 -10px 30px rgba(0,0,0,.26);
   }
 
-  /* ── Geografía de la UI móvil: buscador flota arriba; utilidades abajo ── */
-  /* FABs bajo la cápsula de búsqueda (52px + 10px de margen + aire) */
-  .fab-info { top: calc(72px + env(safe-area-inset-top)); left: 10px; }
+  /* ── Geografía de la UI móvil: buscador arriba · utilidades abajo · navegación al fondo ── */
+  /* El ☰ desaparece: la barra inferior ya da acceso a las cuatro secciones (y a las cuatro,
+     no solo a "info", que era la limitación del ☰). */
+  .fab-info { display: none; }
+  /* Capas y herramientas: bajo el buscador, a la derecha. Se esconde con un sheet abierto para
+     no quedarse flotando encima del panel (era el solape que detectó la auditoría). */
   .fab-map { top: calc(72px + env(safe-area-inset-top)); right: 10px; }
+  .sheet-open .fab-map { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 
   /* Botones redondos solo-móvil: speed-dial de utilidades y tema día/noche */
   .fab-round {
@@ -100,15 +105,16 @@
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     box-shadow: 0 4px 14px rgba(0,0,0,.22); cursor: pointer; font-size: 15px; line-height: 1;
   }
-  .fab-utils { bottom: 34px; left: 8px; }
+  /* Todo lo de abajo se apoya en la barra de navegación, nunca debajo de ella */
+  .fab-utils { bottom: calc(var(--nav-safe) + 44px); left: 8px; }
   .fab-utils svg { transition: transform .25s ease; }
   .fab-utils.open svg { transform: rotate(180deg); }
-  .fab-theme { bottom: 42px; right: 8px; }
+  .fab-theme { bottom: calc(var(--nav-safe) + 44px); right: 8px; }
 
   /* Utilidades de mapa (navegación, fullscreen, GPS) → una sola tarjeta vertical
      abajo-izquierda, encima del speed-dial; la rosa de los vientos queda suelta debajo */
   .maplibregl-ctrl-top-right {
-    top: auto; right: auto; bottom: 86px; left: 8px;
+    top: auto; right: auto; bottom: calc(var(--nav-safe) + 96px); left: 8px;
     display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
     --map-btn: clamp(38px, 9.5vw, 46px); /* botones cuadrados que autoescalan con el ancho */
   }
@@ -144,14 +150,15 @@
   }
   .compass-rose { margin-top: 8px !important; border-radius: 50%; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.22); }
 
-  /* Zoom + atribución: chips en fila, pegados, abajo-derecha */
+  /* Zoom + atribución: chips en fila, pegados, justo encima de la barra de navegación */
   .maplibregl-ctrl-bottom-right {
     display: flex; flex-direction: row; align-items: center; justify-content: flex-end;
-    gap: 4px; padding: 0 8px 8px 0;
+    gap: 4px; padding: 0 8px 0 0; bottom: calc(var(--nav-safe) + 6px);
   }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0; float: none; }
-  .zoom-indicator-box { padding: 0 9px; height: 24px; display: flex; align-items: center; font-size: 9px; border-radius: 10px; }
-  .maplibregl-ctrl-attrib { font-size: 9px; border-radius: 10px; }
+  .zoom-indicator-box { padding: 0 9px; height: 24px; display: flex; align-items: center; font-size: 10px; border-radius: 10px; }
+  .maplibregl-ctrl-attrib { font-size: 10px; border-radius: 10px; }
 
-  .maplibregl-ctrl-bottom-left { z-index: 5; }
+  /* La escala se despega del borde (estaba clavada en x:0) y sube sobre la navegación */
+  .maplibregl-ctrl-bottom-left { z-index: 5; bottom: calc(var(--nav-safe) + 6px); padding-left: 8px; }
 }

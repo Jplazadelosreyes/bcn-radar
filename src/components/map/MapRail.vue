@@ -82,5 +82,31 @@ const secciones = [
 }
 .map-rail-theme:hover { border-color: var(--accent); }
 
-@media (max-width: 680px) { .map-rail { display: none; } }
+/* ═══ MÓVIL: el mismo rail, tumbado abajo (bottom nav) ═══
+   Antes se ocultaba, y con él desaparecía el ÚNICO acceso a Capas, Movilidad y Zonas: en el
+   móvil esas tres secciones eran inalcanzables. Ahora es la barra inferior — el sitio donde
+   el pulgar llega y donde todo el mundo espera encontrar la navegación. */
+@media (max-width: 680px) {
+  .map-rail {
+    top: auto; left: 0; right: 0; bottom: 0; width: auto; height: var(--nav-h);
+    flex-direction: row; justify-content: space-around; align-items: center;
+    gap: 0; padding: 0 4px calc(env(safe-area-inset-bottom));
+    border-right: 0; border-top: 1px solid var(--edge);
+    box-shadow: 0 -6px 24px -10px rgba(0,0,0,.28);
+    z-index: 1200; /* por encima de los sheets: la navegación nunca se tapa */
+  }
+  /* La marca y el tema no viven en la barra de navegación: son chrome del mapa, no secciones */
+  .map-rail-brand, .map-rail-theme { display: none; }
+
+  .map-rail-btn { flex: 1; max-width: 92px; width: auto; padding: 7px 2px 6px; border-radius: 12px; gap: 4px; }
+  .map-rail-ico { font-size: 20px; }
+  .map-rail-label { font-size: var(--fs-xs); }
+  /* Activo: sin borde (en una fila de cuatro ensucia) pero con la píldora de acento bien
+     visible detrás del icono — es la forma de saber de un vistazo dónde estás. */
+  .map-rail-btn.active {
+    border-color: transparent; color: var(--accent-ink); font-weight: 700;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  .map-rail-btn.active .map-rail-label { font-weight: 700; }
+}
 </style>

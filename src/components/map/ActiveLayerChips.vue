@@ -54,6 +54,15 @@ const chips = computed(() => [...urbanismo.value, ...datos.value, ...zonas.value
 .active-chip-x { font-size: 10px; opacity: .7; }
 .active-chip:hover .active-chip-x { opacity: 1; }
 
-/* Móvil: se pospone (lo trabajamos con el resto del layout móvil) */
-@media (max-width: 680px) { .active-chips { display: none; } }
+/* Móvil: fila bajo el buscador, con scroll horizontal. Se reserva hueco a la derecha (66px)
+   para el botón de capas, que comparte esa franja: los chips nunca pasan por debajo de él. */
+@media (max-width: 680px) {
+  .active-chips {
+    top: calc(78px + env(safe-area-inset-top)); left: 10px; right: 66px;
+    gap: 6px;
+  }
+  .active-chip { height: 32px; font-size: var(--fs-xs); padding: 0 9px 0 10px; }
+  /* Con un sheet abierto los filtros estorban: el panel ya manda */
+  .sheet-open .active-chips { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+}
 </style>

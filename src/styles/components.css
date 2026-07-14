@@ -34,6 +34,14 @@
 .maplibregl-ctrl-group button:active { background: var(--surface-2); }
 /* Los iconos de MapLibre son SVG negros incrustados: de noche se invierten para seguir vivos */
 html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplibregl-ctrl-icon { filter: invert(.88) hue-rotate(180deg); }
+
+/* La escala venía con el borde negro grueso de fábrica: se viste con nuestro material */
+.maplibregl-ctrl-scale {
+  background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--edge); border-top: 0; border-radius: 0 0 6px 6px;
+  color: var(--text-lo); font: 600 var(--fs-xs)/1 var(--mono);
+  padding: 4px 7px; box-shadow: var(--shadow-sm);
+}
 .fab-info { top: 14px; left: 14px; }
 .fab-map { top: 14px; right: 60px; }
 .fab-round { display: none; } /* botones redondos solo-móvil (speed-dial, tema) */
