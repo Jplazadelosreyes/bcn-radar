@@ -33,24 +33,54 @@
   /* ═══ MATERIALES / EFECTOS (glass) — EDITA AQUÍ el look del chrome ═══
      Vidrio esmerilado para paneles: sube la transparencia bajando el alpha de --glass-bg;
      sube el desenfoque con --glass-blur; el brillo del borde con --glass-brd. */
-  --glass-bg: rgba(252,253,253,.72);        /* paneles translúcidos (menos alpha = más transparente) */
-  --glass-bg-strong: rgba(252,253,253,.9);  /* cuando el contenido es denso y pide más contraste */
-  --glass-blur: 18px;                        /* radio de desenfoque del vidrio */
-  --glass-saturate: 1.6;                     /* saturación: hace el vidrio más vívido */
+  --glass-bg: rgba(252,253,253,.68);        /* paneles translúcidos (menos alpha = más transparente) */
+  --glass-bg-strong: rgba(252,253,253,.88); /* cuando el contenido es denso y pide más contraste */
+  --glass-blur: 24px;                        /* radio de desenfoque del vidrio */
+  --glass-saturate: 1.7;                     /* saturación: hace el vidrio más vívido */
   --glass-brd: rgba(255,255,255,.65);        /* borde-brillo (highlight) del vidrio */
   --glass-brd-soft: rgba(255,255,255,.3);
+
+  /* CANTO del vidrio — dos capas, porque hacen cosas distintas:
+     --edge   = contorno de TINTA. Recorta el panel contra el mapa (que puede ser claro u
+                oscuro según el basemap). Es lo que faltaba: un borde blanco sobre un panel
+                blanco no se ve, y las barras se disolvían en modo día.
+     --edge-hi = brillo BLANCO del canto superior, la luz resbalando sobre el cristal. */
+  --edge: rgba(34,48,58,.13);
+  --edge-hi: rgba(255,255,255,.75);
+
   --shadow-sm: 0 2px 8px rgba(34,48,58,.08);            /* elevación mínima */
   --shadow-md: 0 10px 28px -10px rgba(34,48,58,.26);    /* cards / paneles */
   --shadow-float: 0 18px 48px -14px rgba(34,48,58,.4);  /* flotantes sobre el mapa */
   --float-bg: var(--glass-bg); /* legado: los flotantes existentes heredan el nuevo vidrio */
+
+  /* ═══ ESCALA TIPOGRÁFICA ═══
+     Antes cada regla inventaba su tamaño (8, 8.5, 9, 9.5, 10, 10.5…) y el suelo eran 8px,
+     que no se leen. El suelo real son 10px, y solo para etiquetas en versal. */
+  --fs-label: 10px;  /* eyebrows y cabeceras de sección (SIEMPRE en versal + tracking) */
+  --fs-xs: 11px;     /* metadatos, notas al pie, badges */
+  --fs-sm: 12px;     /* etiquetas de control, chips */
+  --fs-md: 13px;     /* cuerpo del chrome */
+  --tk-label: .14em; /* tracking de las etiquetas en versal (compensa el cuerpo pequeño) */
+
+  /* ═══ MOVIMIENTO ═══ una sola curva para toda la app: salida rápida, llegada suave */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+
+  /* Foco de teclado: anillo doble (halo del propio panel + anillo azul) para que se vea
+     tanto sobre vidrio claro como sobre el mapa. */
+  --ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--carto);
 }
 /* ── Tema OSCURO (chrome + mapa) ── */
 html[data-theme="dark"] {
   /* Materiales / efectos — versión nocturna (mismos nombres, valores para fondo profundo) */
-  --glass-bg: rgba(18,33,42,.66);
-  --glass-bg-strong: rgba(18,33,42,.88);
+  --glass-bg: rgba(18,33,42,.62);
+  --glass-bg-strong: rgba(18,33,42,.86);
   --glass-brd: rgba(255,255,255,.12);
   --glass-brd-soft: rgba(255,255,255,.06);
+  /* De noche el canto se invierte: el contorno es luz tenue, no tinta. */
+  --edge: rgba(255,255,255,.11);
+  --edge-hi: rgba(255,255,255,.16);
   --shadow-sm: 0 2px 8px rgba(0,0,0,.34);
   --shadow-md: 0 10px 28px -10px rgba(0,0,0,.52);
   --shadow-float: 0 18px 48px -14px rgba(0,0,0,.64);
@@ -85,19 +115,38 @@ html[data-theme="dark"] {
 .ficha-grid { overflow: hidden; }
 
 /* Material de vidrio reutilizable: aplica todo el efecto glass de una vez (fondo translúcido +
-   desenfoque + saturación + borde-brillo + sombra flotante). Úsalo con `class="glass"` o
+   desenfoque + saturación + canto de dos capas + sombra flotante). Úsalo con `class="glass"` o
    combínalo. Ajusta la intensidad desde los tokens --glass-* de arriba. */
 .glass {
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-brd-soft);
-  box-shadow: var(--shadow-float);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float);
+}
+
+/* ═══ SUELO DE CALIDAD ═══ */
+/* Foco de teclado: visible en TODO lo interactivo. El ratón no lo dispara (:focus-visible),
+   así que no ensucia el clic. Antes no existía: navegar con Tab era navegar a ciegas. */
+:where(button, a, input, select, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--r-inner);
+}
+
+/* Quien pide menos movimiento, recibe menos movimiento (mareo, vestibular). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; font-family: var(--sans); height: 100vh; width: 100vw; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+/* width:100% (no 100vw): 100vw ignora la barra de scroll y provoca desbordamiento horizontal. */
+html, body { margin: 0; padding: 0; font-family: var(--sans); height: 100%; width: 100%; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 ::selection { background: var(--accent); color: #fff; }
 #app { height: 100%; }
-.app-container { display: flex; flex-direction: column; height: 100vh; }
+/* dvh = altura REAL visible (descuenta la barra del navegador en móvil); vh la incluiría. */
+.app-container { display: flex; flex-direction: column; height: 100dvh; }
 

@@ -7,7 +7,8 @@
 // zoom + selección de finca al clic, con Catastro + PIU + reverse-geocoding). Escribe los
 // stores; su única UI es el lienzo del mapa.
 import { onMounted, watch } from 'vue'
-import 'maplibre-gl/dist/maplibre-gl.css'
+// El CSS de MapLibre se importa en main.js (antes que el nuestro) para que podamos
+// reposicionar sus controles sin pelear con el orden de inyección.
 import { createMap } from '../../composables/useMap'
 import { initAutoZones } from '../../composables/useAutoZones'
 import { applyMapTheme } from '../../services/map-theme.js'

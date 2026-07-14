@@ -5,11 +5,35 @@
 .map-section { flex: 1; position: relative; height: 100%; background: var(--bg); }
 .map-container { width: 100%; height: 100%; z-index: 1; }
 
+/* Cursor como en Google Maps: flecha normal sobre el mapa y mano cerrada SOLO al arrastrar.
+   La mano abierta que trae MapLibre sugiere "esto se mueve" y estorba al apuntar a una finca
+   (las capas clicables ya ponen el dedo por su cuenta con estilo inline). */
+.maplibregl-canvas-container.maplibregl-interactive { cursor: default; }
+.maplibregl-canvas-container.maplibregl-interactive:active { cursor: grabbing; }
+
 /* ── Paneles ocultables + botones flotantes (base: escritorio se comporta como antes) ── */
 .panel-close { display: flex; position: absolute; top: 8px; right: 8px; z-index: 30; width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-lo); cursor: pointer; font-size: 12px; align-items: center; justify-content: center; }
 .panel-close:hover { background: var(--surface-3); color: var(--accent); }
-.fab { display: flex; position: absolute; z-index: 1100; width: 46px; height: 46px; border: 1px solid var(--glass-brd-soft); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: var(--shadow-md); border-radius: var(--r-card); }
-.fab:hover { border-color: var(--accent); }
+.fab { display: flex; position: absolute; z-index: 1100; width: 46px; height: 46px; border: 1px solid var(--edge); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-md); border-radius: var(--r-card); transition: border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease); }
+.fab:hover { border-color: var(--accent); transform: translateY(-1px); }
+.fab:active { transform: translateY(0); }
+
+/* ═══ Controles nativos del mapa: vestidos con NUESTRO material ═══
+   MapLibre los sirve como botones blancos de librería; aquí pasan a ser vidrio, con el mismo
+   canto y la misma respuesta al ratón que el resto del chrome. */
+.maplibregl-ctrl-group {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--edge); border-radius: 12px; overflow: hidden;
+  box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-md);
+}
+.maplibregl-ctrl-group button { width: 38px; height: 38px; background: transparent; transition: background var(--dur-fast) var(--ease); }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--edge); }
+.maplibregl-ctrl-group button:hover { background: var(--surface-3); }
+.maplibregl-ctrl-group button:active { background: var(--surface-2); }
+/* Los iconos de MapLibre son SVG negros incrustados: de noche se invierten para seguir vivos */
+html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplibregl-ctrl-icon { filter: invert(.88) hue-rotate(180deg); }
 .fab-info { top: 14px; left: 14px; }
 .fab-map { top: 14px; right: 60px; }
 .fab-round { display: none; } /* botones redondos solo-móvil (speed-dial, tema) */
@@ -18,21 +42,48 @@
 /* Escritorio: los paneles colapsados desaparecen (en móvil se deslizan fuera con transform) */
 @media (min-width: 681px) {
   .sidebar:not(.open), .map-floating-controls:not(.open) { display: none; }
-  /* Controles nativos del mapa (zoom · brújula · pantalla completa · GPS · rosa) consolidados
-     ABAJO-DERECHA, estilo Google Maps. Anclados por su borde inferior, se apilan hacia arriba. */
-  .maplibregl-ctrl-top-right { top: auto; bottom: 78px; right: 10px; }
-  /* El botón de capas (abre el panel de controles) baja a la esquina inferior derecha */
-  .fab-map { top: auto; bottom: 20px; right: 14px; }
+
+  /* ── Geografía del mapa en escritorio (patrón Google Maps) ────────────────────────
+     DERECHA  = navegación ("cómo me muevo"): brújula · pantalla completa · GPS · zoom.
+     IZQUIERDA = capas ("qué veo"): el botón Capas y el panel que abre.
+     La franja inferior (escala · zoom · atribución) queda libre bajo ambas columnas. */
+
+  /* Columna de navegación, anclada por abajo y apilada hacia arriba. El zoom queda al
+     final (más cerca del cursor, como Google) y la brújula corona la columna. */
+  .maplibregl-ctrl-top-right {
+    top: auto; bottom: 46px; right: 12px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl { margin: 0; float: none; }
+  .maplibregl-ctrl-top-right .compass-rose { order: 1; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:has(.maplibregl-ctrl-fullscreen) { order: 2; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:has(.maplibregl-ctrl-geolocate) { order: 3; }
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group:has(.maplibregl-ctrl-zoom-in) { order: 4; }
+
+  /* El botón suelto de capas no existe en escritorio: lo sustituye MapLayersBar (abajo-izq) */
+  .fab-map { display: none; }
+
+  /* Panel de herramientas ("Más" de la barra): sube desde la barra de capas, sin taparla */
+  .map-floating-controls { right: auto; left: 82px; bottom: 96px; }
+
+  /* Franja inferior: zoom y atribución en FILA (apilados robaban altura a la columna) */
+  .maplibregl-ctrl-bottom-right {
+    display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 0 12px 10px 0;
+  }
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0; float: none; }
+
+  /* La escala se aparta del rail y de la barra de capas para no quedar debajo */
+  .maplibregl-ctrl-bottom-left { margin-left: 156px; }
 }
 
 /* ═══ Controles flotantes del mapa ═══ */
-.map-floating-controls { position: absolute; bottom: 22px; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); padding: 14px 15px; box-shadow: var(--shadow-float); z-index: 1000; width: 210px; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); }
-.map-floating-controls h4 { margin: 0 0 10px; font: 700 8px/1 var(--sans); color: var(--text-mut); text-transform: uppercase; letter-spacing: .16em; }
+.map-floating-controls { position: absolute; bottom: 22px; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); padding: 14px 15px; box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float); z-index: 1000; width: 218px; border: 1px solid var(--edge); }
+.map-floating-controls h4 { margin: 0 0 10px; font: 700 var(--fs-label)/1 var(--sans); color: var(--text-mut); text-transform: uppercase; letter-spacing: var(--tk-label); }
 .control-group { display: flex; flex-direction: column; gap: 9px; }
 .ctrl { display: flex; align-items: center; gap: 9px; font: 500 12px/1 var(--sans); color: var(--text); cursor: pointer; }
 .ctrl input { accent-color: var(--accent); width: 14px; height: 14px; }
 .divider { border: 0; border-top: 1px solid var(--border); margin: 13px 0; }
-.ctrl-hint { font: 500 9px/1.45 var(--sans); color: var(--text-mut); margin: 8px 0 0; }
+.ctrl-hint { font: 500 var(--fs-xs)/1.5 var(--sans); color: var(--text-mut); margin: 8px 0 0; }
 .measure-readout { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; }
 .measure-total { font: 700 13px/1 var(--mono); color: var(--carto); }
 .measure-clear { font: 600 9px/1 var(--sans); color: var(--text-lo); background: var(--surface-2); border: 1px solid var(--border); padding: 5px 8px; cursor: pointer; }
@@ -79,13 +130,13 @@
     /* Columna izquierda: alineada con el buscador (left:82) y justo debajo de él (top:72). */
     position: absolute; top: 72px; left: 82px; width: min(400px, calc(100vw - 110px));
     height: auto; max-height: calc(100% - 88px);   /* deja sitio al buscador arriba + margen abajo */
-    border-right: 0; border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); border-radius: 20px;
+    border-right: 0; border: 1px solid var(--edge); border-radius: 20px;
     /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
     background: var(--glass-bg);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     padding: 12px;
-    box-shadow: var(--shadow-float);
+    box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float);
     overflow: hidden auto;
   }
   .sidebar::-webkit-scrollbar { width: 8px; }
@@ -137,7 +188,7 @@
 .export-btn { height: 44px; border: none; background: var(--accent); color: #fff; font: 600 12px/1 var(--sans); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: filter .15s; border-radius: var(--r-inner); }
 .export-btn:hover { filter: brightness(1.12); }
 
-.zoom-indicator-box { background: var(--float-bg); padding: 7px 11px; box-shadow: 0 2px 10px rgba(0,0,0,.4); font: 600 10px/1 var(--mono); color: var(--text); border: 1px solid var(--border); }
+.zoom-indicator-box { background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); padding: 7px 11px; box-shadow: var(--shadow-sm); font: 600 var(--fs-xs)/1 var(--mono); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-pill); }
 .zone-tooltip { background: transparent; color: var(--text-hi); border: none; font-family: var(--sans); font-weight: 700; font-size: 12px; padding: 0; box-shadow: none; text-shadow: 1.5px 1.5px 0 rgba(0,0,0,.85), -1.5px -1.5px 0 rgba(0,0,0,.85), 1.5px -1.5px 0 rgba(0,0,0,.85), -1.5px 1.5px 0 rgba(0,0,0,.85); }
 .zone-tooltip::before { display: none !important; }
 
@@ -313,13 +364,13 @@
 .renta-any { font-family: var(--mono); }
 
 /* ═══ Explorador de parada ═══ */
-.stop-explorer { position: absolute; top: 16px; left: 16px; z-index: 5; width: 306px; max-width: calc(100% - 32px); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); border: 1px solid var(--glass-brd-soft); border-top-color: var(--glass-brd); box-shadow: var(--shadow-float); padding: 14px 15px; border-radius: var(--r-card); }
+.stop-explorer { position: absolute; top: 16px; left: 16px; z-index: 5; width: 306px; max-width: calc(100% - 32px); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); border: 1px solid var(--edge); box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float); padding: 14px 15px; border-radius: var(--r-card); }
 .stop-explorer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.stop-explorer-k { display: block; font: 700 8px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink); }
+.stop-explorer-k { display: block; font: 700 var(--fs-label)/1 var(--sans); letter-spacing: var(--tk-label); text-transform: uppercase; color: var(--accent-ink); }
 .stop-explorer-name { display: block; font: 700 13px/1.25 var(--sans); color: var(--text-hi); margin-top: 3px; }
 .stop-explorer-x { flex-shrink: 0; width: 24px; height: 24px; border: 0; background: var(--surface-2); color: var(--text-lo); cursor: pointer; font-size: 12px; }
 .stop-explorer-x:hover { background: var(--surface-3); }
-.stop-explorer-hint { display: block; font: 500 9.5px/1.4 var(--sans); color: var(--text-mut); margin: 9px 0 8px; }
+.stop-explorer-hint { display: block; font: 500 var(--fs-xs)/1.5 var(--sans); color: var(--text-mut); margin: 9px 0 8px; }
 .stop-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .stop-chip { font: 700 11px/1 var(--mono); color: #fff; background: var(--c); border: 2px solid var(--c); border-radius: 4px; padding: 6px 9px; cursor: pointer; opacity: .5; transition: opacity .12s, transform .12s; }
 .stop-chip:hover { opacity: .85; }

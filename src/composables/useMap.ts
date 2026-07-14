@@ -76,8 +76,9 @@ export function createMap(container = 'map') {
     attributionControl: { compact: true },
   })
 
-  // Navegación completa: zoom, brújula (rotar/orientar) e inclinación 3D
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true, showZoom: true }), 'top-right')
+  // Zoom. La brújula nativa se omite a propósito: CompassRoseControl (abajo) ya cumple esa
+  // función — con las dos activas salían dos brújulas seguidas en la misma columna.
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'top-right')
   // Pantalla completa
   map.addControl(new maplibregl.FullscreenControl(), 'top-right')
   // Geolocalización (mi ubicación, con rumbo)

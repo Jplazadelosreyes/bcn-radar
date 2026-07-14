@@ -1,10 +1,16 @@
 /* Adaptaciones móviles: mapa a pantalla completa + sidebar/controles como bottom sheets. */
 /* ═══ MÓVIL: mapa a pantalla completa; sidebar y controles como paneles deslizables ═══ */
 @media (max-width: 680px) {
-  /* App full-screen: el documento NO scrollea; solo el interior del sheet. Mata el
-     rubber-band incómodo al interactuar con los componentes. */
-  html, body { height: 100dvh; overflow: hidden; overscroll-behavior: none; }
-  .app-container { height: 100dvh; }
+  /* App full-screen: el documento NO es una superficie scrolleable; solo scrollea el interior
+     del sheet. `overflow:hidden` por sí solo NO basta (Safari sigue permitiendo arrastrar la
+     página y el rebote); clavar el body al viewport con position:fixed sí, porque entonces no
+     hay nada fuera de pantalla que mostrar. Además evita el 100vh, que en móvil cuenta la barra
+     de direcciones y deja siempre un trozo de más por el que "bajar". */
+  html, body {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    overflow: hidden; overscroll-behavior: none;
+  }
+  .app-container { height: 100%; }
   .fab { display: flex; }
   .panel-close { display: flex; }
   /* ── Bottom sheets como cards flotantes (patrón Google Maps + lenguaje de la cápsula):

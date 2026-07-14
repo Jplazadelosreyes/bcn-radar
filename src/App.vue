@@ -8,6 +8,7 @@ import MapRail from './components/map/MapRail.vue'
 import SearchBox from './components/map/SearchBox.vue'
 import ActiveLayerChips from './components/map/ActiveLayerChips.vue'
 import MapFabs from './components/map/MapFabs.vue'
+import MapLayersBar from './components/map/MapLayersBar.vue'
 import StopExplorer from './components/map/StopExplorer.vue'
 import MapControls from './components/map/MapControls.vue'
 import InfoDossier from './components/sidebar/InfoDossier.vue'
@@ -59,6 +60,9 @@ function closePanel() { activeSection.value = null }
 
         <!-- FABs sobre el mapa (utilidades/tema + reabrir controles) -->
         <MapFabs />
+
+        <!-- Barra de capas (abajo-izquierda, estilo Google): mapa base + vista -->
+        <MapLayersBar />
 
         <!-- Explorador de parada: líneas que pasan → elegir una dibuja su recorrido -->
         <StopExplorer
