@@ -20,8 +20,14 @@ import ZonasCard from './components/sidebar/ZonasCard.vue'
 // el mapa es el protagonista y el panel flota sobre él (modelo Google Maps).
 const { controlsOpen, utilsOpen, activeSection, toggleSection, sidebarOpen } = usePanels()
 
-// Arrastre del asa del bottom sheet (móvil): al bajar del todo, cierra la sección.
-const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => { activeSection.value = null })
+// Arrastre del asa del bottom sheet (móvil). Snap de 3 estados como el sheet de Google:
+// arrastrar arriba = expandir; abajo desde expandido = volver a compacto (NO cerrar); abajo
+// desde compacto = cerrar. El callback se dispara al bajar desde expandido: solo devuelve el
+// contenido al principio (useSheetDrag ya quita el estado 'full' → compacto). Antes cerraba,
+// y por eso el gesto se saltaba el estado intermedio.
+const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag(() => {
+  document.querySelector('.sidebar')?.scrollTo({ top: 0, behavior: 'smooth' })
+})
 
 // Explorador de parada (store useExploradorParadas): lo consume el StopExplorer del área del mapa.
 const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useExploradorParadas()
