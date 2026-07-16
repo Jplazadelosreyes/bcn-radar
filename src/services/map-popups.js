@@ -6,11 +6,11 @@
 // Nota: el popup de las capas de datos abiertos vive en su catálogo (config/capas-datos.js),
 // junto a la definición de cada capa — ahí es donde corresponde editarlo.
 
-// Finca seleccionada (marcador): título fijo + cuerpo (dirección legible o coordenadas).
-// Lo usan por igual el clic en el mapa y el buscador: seleccionar es seleccionar, venga de
-// donde venga. (Existió un `direccionPopup` aparte para el buscador; desapareció al unificar
-// los dos caminos — eran el mismo punto con dos etiquetas distintas.)
-export const fincaPopup = (body) => `<b>🏢 Finca Seleccionada</b><br>${body}`
+// NOTA: el pin de finca NO tiene popup, y es deliberado. Hubo dos (`fincaPopup` y
+// `direccionPopup`) y los dos se retiraron: repetían por cuarta vez una dirección que ya
+// estaba en el buscador, en la ficha y en la cabecera del panel, y tapaban el mapa justo
+// donde el usuario acababa de pinchar. Ver la cabecera de composables/useFincaPicker.ts.
+// Los popups que quedan son los que SÍ aportan algo que no está en ningún otro sitio.
 
 // Parada de transporte: nombre + modo + líneas que pasan. `s` = { name, modo, lines }.
 export const stopPopup = (s) =>

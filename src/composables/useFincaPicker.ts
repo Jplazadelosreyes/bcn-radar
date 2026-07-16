@@ -8,6 +8,13 @@
 //  buscador (useSearch traduce texto a coordenadas y delega aquí), así que ambos dan el
 //  mismo resultado.
 //
+//  El pin NO abre un popup con la dirección: la misma dirección ya salía a la vez en el
+//  buscador, en la ficha y en la cabecera del panel (4 sitios), y el popup era además la peor
+//  versión —el display_name crudo de Nominatim, con "Barcelona" tres veces y "Spain" al final,
+//  en una app que solo cubre Barcelona— mientras tapaba 240×130 px de mapa justo donde el
+//  usuario acababa de pinchar. El pin marca el punto y el panel cuenta la historia; tocar el
+//  pin devuelve al panel si estaba cerrado.
+//
 //  Se separó de MapCanvas para que el componente sea solo el ensamblaje del motor y esta
 //  lógica de negocio quede aislada. `any` a nivel de archivo: LÍMITE con MapLibre + XML crudo.
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -16,7 +23,6 @@ import maplibregl from 'maplibre-gl'
 import { fetchFinca, fetchRefFromCoords } from '../services/catastro.js'
 import { fetchAfectaciones } from '../services/piu.js'
 import { reverseGeocode } from '../services/geocode.js'
-import { fincaPopup } from '../services/map-popups.js'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
 import { setQuery } from './searchState'
@@ -41,11 +47,16 @@ export function useFincaPicker() {
       .then((a) => { afectaciones.value = { estado: 'ok', ...a } })
       .catch((err) => { console.warn('PIU afectaciones', err); afectaciones.value = { estado: 'error' } })
 
-    // Movemos el pin o lo creamos
+    // Movemos el pin o lo creamos. El pin NO lleva popup: solo marca el punto (ver abajo).
+    // Tocarlo devuelve al dossier, que es lo que el usuario querría con la ficha cerrada.
     if (marker.current) {
       marker.current.setLngLat([lng, lat])
     } else {
       marker.current = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).addTo(map)
+      const el = marker.current.getElement()
+      el.style.cursor = 'pointer'
+      el.title = 'Ver la ficha de esta finca'
+      el.addEventListener('click', (e: Event) => { e.stopPropagation(); openSection('info') })
     }
 
     // Reverse Geocoding (coordenadas → calle y número) vía services/geocode
@@ -60,12 +71,8 @@ export function useFincaPicker() {
         // el desplegable se abría solo sobre el panel al clicar una finca.
         setQuery(direccionCorta)
         selectedAddress.value = direccionCorta
-        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(fincaPopup(data.display_name)))
-        if (!marker.current.getPopup().isOpen()) marker.current.togglePopup()
       } else {
         selectedAddress.value = `Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`
-        marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(fincaPopup(`Coordenadas: ${lat.toFixed(4)}, ${lng.toFixed(4)}`)))
-        if (!marker.current.getPopup().isOpen()) marker.current.togglePopup()
       }
 
       // Datos catastrales REALES: coords → ref. de parcela (14) → finca (edificio + unidad)
