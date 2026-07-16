@@ -80,8 +80,12 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
   }
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0; float: none; }
 
-  /* La escala se aparta del rail y de la barra de capas para no quedar debajo */
-  .maplibregl-ctrl-bottom-left { margin-left: 156px; }
+  /* La escala se aparta del rail y de la barra de capas colapsada (que acaba en x=150). */
+  .maplibregl-ctrl-bottom-left { margin-left: 166px; transition: opacity var(--dur) var(--ease); }
+  /* Desplegada, la barra de capas ocupa 743px de ancho y se comería la escala: mientras está
+     abierta, la escala se desvanece (mismo recurso que en móvil con los sheets). Eligiendo
+     mapa base no hace falta la escala; vuelve al cerrar. */
+  .map-section:has(.layers-bar.open) .maplibregl-ctrl-bottom-left { opacity: 0; }
 }
 
 /* ═══ Controles flotantes del mapa ═══ */
@@ -137,7 +141,12 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
   .sidebar {
     /* Columna izquierda: alineada con el buscador (left:82) y justo debajo de él (top:72). */
     position: absolute; top: 72px; left: 82px; width: min(400px, calc(100vw - 110px));
-    height: auto; max-height: calc(100% - 88px);   /* deja sitio al buscador arriba + margen abajo */
+    height: auto;
+    /* La columna izquierda es una PILA: buscador (arriba) → panel → barra de capas (abajo).
+       El panel para donde empieza la barra de capas; si no, se la come (medido: el panel
+       llegaba a y=855 y la barra vive en y=779). --layers-foot = alto de la barra + su
+       margen inferior + aire. */
+    max-height: calc(100% - 72px - var(--layers-foot));
     border-right: 0; border: 1px solid var(--edge); border-radius: 20px;
     /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
     background: var(--glass-bg);
