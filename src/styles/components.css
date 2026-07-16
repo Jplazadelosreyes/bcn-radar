@@ -140,13 +140,17 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
   .main-content { position: relative; }
   .sidebar {
     /* Columna izquierda: alineada con el buscador (left:82) y justo debajo de él (top:72). */
-    position: absolute; top: 72px; left: 82px; width: min(400px, calc(100vw - 110px));
+    position: absolute; left: 82px; width: min(400px, calc(100vw - 110px));
     height: auto;
     /* La columna izquierda es una PILA: buscador (arriba) → panel → barra de capas (abajo).
-       El panel para donde empieza la barra de capas; si no, se la come (medido: el panel
-       llegaba a y=855 y la barra vive en y=779). --layers-foot = alto de la barra + su
-       margen inferior + aire. */
-    max-height: calc(100% - 72px - var(--layers-foot));
+       Cada pieza cede sitio a la siguiente en vez de superponerse:
+       · --suggest-h = alto real del autocompletado abierto (0 si está cerrado). Lo publica
+         SearchBox al medirlo → el panel baja en vez de quedar debajo del desplegable.
+       · --layers-foot = huella de la barra de capas abajo. El panel para antes de tocarla
+         (medido: el panel llegaba a y=855 y la barra vive en y=779). */
+    top: calc(72px + var(--suggest-h, 0px));
+    max-height: calc(100% - 72px - var(--suggest-h, 0px) - var(--layers-foot));
+    transition: top var(--dur) var(--ease), max-height var(--dur) var(--ease);
     border-right: 0; border: 1px solid var(--edge); border-radius: 20px;
     /* Vidrio esmerilado: el mapa se difumina detrás en los gaps entre cards (look moderno). */
     background: var(--glass-bg);

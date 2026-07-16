@@ -137,11 +137,12 @@ html[data-theme="dark"] {
 
 /* ═══ SUELO DE CALIDAD ═══ */
 /* Foco de teclado: visible en TODO lo interactivo. El ratón no lo dispara (:focus-visible),
-   así que no ensucia el clic. Antes no existía: navegar con Tab era navegar a ciegas. */
+   así que no ensucia el clic. Antes no existía: navegar con Tab era navegar a ciegas.
+   OJO: no se toca el border-radius aquí — el anillo debe seguir la forma REAL de la pieza
+   (forzarlo cuadraba el foco de la cápsula del buscador, que es una píldora). */
 :where(button, a, input, select, [tabindex]):focus-visible {
   outline: none;
   box-shadow: var(--ring);
-  border-radius: var(--r-inner);
 }
 
 /* Quien pide menos movimiento, recibe menos movimiento (mareo, vestibular). */

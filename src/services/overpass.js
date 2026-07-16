@@ -6,22 +6,51 @@ const OVERPASS_ENDPOINTS = [
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ]
 
-// Prueba los mirrors en orden hasta obtener una respuesta válida (el Overpass público se satura).
+const PER_TRY_MS = 25000 // techo por mirror: uno colgado no puede bloquear al resto
+const HEDGE_MS = 7000    // si el anterior no ha contestado aún, se lanza el siguiente en paralelo
+
+// Pide a los mirrors públicos de Overpass y devuelve la PRIMERA respuesta válida.
+//
+// Antes se probaban en serie y sin timeout: si un mirror aceptaba la conexión pero no
+// respondía (le pasa al de kumi.systems), `fetch` esperaba indefinidamente y la capa no
+// llegaba a cargar nunca — el bug del metro.
+//
+// Ahora cada intento tiene su propio techo de tiempo y los mirrors se lanzan ESCALONADOS
+// (petición "hedged"): si el primero contesta rápido —lo normal— los demás ni se lanzan;
+// si tarda más de HEDGE_MS, entra el siguiente en paralelo y gana el que llegue antes. Los
+// que quedan vivos se cancelan. Así un mirror caído cuesta HEDGE_MS, no la carga entera.
 export async function overpassFetch(q) {
-  let lastErr
-  for (const url of OVERPASS_ENDPOINTS) {
+  const body = 'data=' + encodeURIComponent(q)
+  const abortables = []
+
+  const intento = async (url, esperaMs) => {
+    if (esperaMs) await new Promise((r) => setTimeout(r, esperaMs))
+    const ctrl = new AbortController()
+    abortables.push(ctrl)
+    const techo = setTimeout(() => ctrl.abort(), PER_TRY_MS)
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) })
-      if (!res.ok) {
-        lastErr = new Error(`HTTP ${res.status}`)
-        continue
-      }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: ctrl.signal,
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status} en ${new URL(url).host}`)
       return await res.json()
-    } catch (e) {
-      lastErr = e
+    } finally {
+      clearTimeout(techo)
     }
   }
-  throw lastErr || new Error('Overpass sin respuesta')
+
+  try {
+    return await Promise.any(OVERPASS_ENDPOINTS.map((url, i) => intento(url, i * HEDGE_MS)))
+  } catch (e) {
+    // Promise.any agrupa los fallos: se resume para que el error sea diagnosticable.
+    const causas = e?.errors?.map((x) => x?.message || String(x)).join(' · ')
+    throw new Error(`Overpass sin respuesta${causas ? ` (${causas})` : ''}`)
+  } finally {
+    abortables.forEach((c) => c.abort()) // cancela los mirrors que sigan en vuelo
+  }
 }
 
 // Distancia en metros entre dos puntos [lng, lat].
