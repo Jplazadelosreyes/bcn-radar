@@ -7,10 +7,10 @@
 // junto a la definición de cada capa — ahí es donde corresponde editarlo.
 
 // Finca seleccionada (marcador): título fijo + cuerpo (dirección legible o coordenadas).
+// Lo usan por igual el clic en el mapa y el buscador: seleccionar es seleccionar, venga de
+// donde venga. (Existió un `direccionPopup` aparte para el buscador; desapareció al unificar
+// los dos caminos — eran el mismo punto con dos etiquetas distintas.)
 export const fincaPopup = (body) => `<b>🏢 Finca Seleccionada</b><br>${body}`
-
-// Dirección encontrada por el buscador de la topbar.
-export const direccionPopup = (nombre) => `<b>🏠 Dirección encontrada:</b><br>${nombre}`
 
 // Parada de transporte: nombre + modo + líneas que pasan. `s` = { name, modo, lines }.
 export const stopPopup = (s) =>

@@ -2,7 +2,11 @@
 //  useFincaPicker — selección de finca al clic sobre el mapa (a nivel calle, zoom ≥ 16).
 //  Orquesta la "magia interactiva": pin en el punto, situación urbanística (PIU) en paralelo,
 //  reverse-geocoding (Nominatim) → dirección legible, y coords → ref. de parcela → finca
-//  (Catastro). Escribe los stores useFinca / useSearch; el marcador vive en useMapStore.
+//  (Catastro). Escribe los stores useFinca / searchState; el marcador vive en useMapStore.
+//
+//  Es el ÚNICO camino para seleccionar un punto: lo usan tanto el clic en el mapa como el
+//  buscador (useSearch traduce texto a coordenadas y delega aquí), así que ambos dan el
+//  mismo resultado.
 //
 //  Se separó de MapCanvas para que el componente sea solo el ensamblaje del motor y esta
 //  lógica de negocio quede aislada. `any` a nivel de archivo: LÍMITE con MapLibre + XML crudo.
@@ -15,13 +19,12 @@ import { reverseGeocode } from '../services/geocode.js'
 import { fincaPopup } from '../services/map-popups.js'
 import { useMapStore } from './useMapStore'
 import { useFinca } from './useFinca'
-import { useSearch } from './useSearch'
+import { setQuery } from './searchState'
 import { usePanels } from './usePanels'
 
 export function useFincaPicker() {
   const { marker } = useMapStore()
   const { fincaData, clickedCoords, selectedAddress, afectaciones } = useFinca()
-  const { searchQuery } = useSearch()
   const { openSection } = usePanels()
 
   // Selecciona la finca en un punto: PIU + pin + geocoding + Catastro. `map` es la instancia
@@ -53,7 +56,9 @@ export function useFincaPicker() {
         const calle = data.address.road || data.address.pedestrian || 'Calle Desconocida'
         const numero = data.address.house_number || ''
         const direccionCorta = `${calle} ${numero}`.trim()
-        searchQuery.value = direccionCorta
+        // setQuery y no searchQuery.value: escribirlo directo despertaba al autocompletado y
+        // el desplegable se abría solo sobre el panel al clicar una finca.
+        setQuery(direccionCorta)
         selectedAddress.value = direccionCorta
         marker.current.setPopup(new maplibregl.Popup({ offset: 24 }).setHTML(fincaPopup(data.display_name)))
         if (!marker.current.getPopup().isOpen()) marker.current.togglePopup()

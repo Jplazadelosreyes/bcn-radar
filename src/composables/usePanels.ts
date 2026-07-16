@@ -9,32 +9,34 @@ const mq = typeof window !== 'undefined' ? window.matchMedia('(max-width: 680px)
 const isMobile = ref(mq ? mq.matches : false)
 if (mq) mq.addEventListener('change', (e) => { isMobile.value = e.matches })
 
-const sidebarOpen = ref(false)   // panel izquierdo (móvil: bottom sheet)
-const controlsOpen = ref(false)  // panel de controles del mapa
+const controlsOpen = ref(false)  // panel de herramientas del mapa (medir · radio · 3D)
 const utilsOpen = ref(false)     // speed-dial de utilidades del mapa (móvil)
 
-// Rail (escritorio): sección activa del panel lateral. Una sola abierta a la vez;
-// null = solo el rail de iconos, sin panel. La elige el rail y también el clic en finca
-// (abre 'info' solo). 'info' | 'capas' | 'mov' | 'zonas'
+// Sección activa del panel principal. Una sola a la vez; null = SOLO EL MAPA (estado inicial).
+// La eligen el rail (escritorio) / la barra inferior (móvil) y el clic en finca (abre 'info').
+// 'info' | 'capas' | 'mov' | 'zonas'
 const activeSection = ref<string | null>(null)
-function toggleSection(id: string) { activeSection.value = activeSection.value === id ? null : id }
-function openSection(id: string) { activeSection.value = id; sidebarOpen.value = true }
+
+// ── Exclusión mutua: solo UN panel abierto ────────────────────────────────────────────
+// El panel de sección y el de herramientas ocupan el mismo sitio (columna izquierda en
+// escritorio, bottom sheet en móvil): con los dos abiertos se superponen. Se excluyen.
+//
+// Antes esto se intentaba sobre `sidebarOpen`, pero ese ref no lo leía NADIE: el panel se
+// muestra con `v-show="activeSection"`. La exclusión no hacía nada y los dos paneles se
+// abrían a la vez. Ahora se opera sobre el estado que de verdad gobierna la vista.
+function openSection(id: string) { activeSection.value = id; controlsOpen.value = false }
+function toggleSection(id: string) {
+  const siguiente = activeSection.value === id ? null : id
+  activeSection.value = siguiente
+  if (siguiente) controlsOpen.value = false
+}
+function openControls() { controlsOpen.value = true; activeSection.value = null }
 
 function toggleUtils() { utilsOpen.value = !utilsOpen.value }
 
-function openSidebar() {
-  sidebarOpen.value = true
-  if (isMobile.value) controlsOpen.value = false
-}
-function openControls() {
-  controlsOpen.value = true
-  if (isMobile.value) sidebarOpen.value = false
-}
-
-// Al entrar a viewport móvil (rotación, redimensión), recolapsar todo:
-// dos paneles abiertos se superponen y tapan el mapa
-watch(isMobile, (m) => { if (m) { sidebarOpen.value = false; controlsOpen.value = false; utilsOpen.value = false } })
+// Al entrar a viewport móvil (rotación, redimensión), volver al mapa limpio.
+watch(isMobile, (m) => { if (m) { activeSection.value = null; controlsOpen.value = false; utilsOpen.value = false } })
 
 export function usePanels() {
-  return { isMobile, sidebarOpen, controlsOpen, utilsOpen, activeSection, toggleSection, openSection, openSidebar, openControls, toggleUtils }
+  return { isMobile, controlsOpen, utilsOpen, activeSection, toggleSection, openSection, openControls, toggleUtils }
 }

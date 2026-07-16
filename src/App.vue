@@ -18,7 +18,7 @@ import ZonasCard from './components/sidebar/ZonasCard.vue'
 
 // Navegación por rail (escritorio) / bottom sheet (móvil). Una sección abierta a la vez;
 // el mapa es el protagonista y el panel flota sobre él (modelo Google Maps).
-const { controlsOpen, utilsOpen, activeSection, toggleSection, sidebarOpen } = usePanels()
+const { controlsOpen, utilsOpen, activeSection, toggleSection } = usePanels()
 
 // Arrastre del asa del bottom sheet (móvil). Snap de 3 estados como el sheet de Google:
 // arrastrar arriba = expandir; abajo desde expandido = volver a compacto (NO cerrar); abajo
@@ -32,8 +32,9 @@ const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouch
 // Explorador de parada (store useExploradorParadas): lo consume el StopExplorer del área del mapa.
 const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useExploradorParadas()
 
-// El panel del sidebar está abierto cuando hay una sección activa.
-watch(activeSection, (s) => { if (!s) { sidebarOpen.value = false; sheetFull.value = false } else { sidebarOpen.value = true } })
+// Al cerrar la sección, el sheet vuelve a su forma mínima (si se dejó expandido, la próxima
+// que se abra no debe heredar la altura de la anterior).
+watch(activeSection, (s) => { if (!s) sheetFull.value = false })
 function closePanel() { activeSection.value = null }
 </script>
 

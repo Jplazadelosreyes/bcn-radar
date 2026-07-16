@@ -1,56 +1,41 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  useSearch — buscador de direcciones con autocompletado (Nominatim/OSM). Al escribir,
-//  ofrece sugerencias (debounce); al elegir una o pulsar Enter, vuela y clava el pin.
-//  Singleton. Comparte el marcador con el click en el mapa (useMapStore.marker).
+//  useSearch — buscador de direcciones (Nominatim/OSM). Su trabajo es TRADUCIR texto a
+//  coordenadas; a partir de ahí delega en useFincaPicker, el mismo camino que el clic en
+//  el mapa. Buscar una dirección ES seleccionarla (modelo Google Maps).
+//
+//  Antes los dos caminos hacían cosas distintas: buscar volaba y ponía un pin con el popup
+//  "Dirección encontrada" pero NO cargaba el dossier (había que volver a clicar encima), y
+//  clicar sí lo cargaba. Mismo destino, dos resultados → quedaban cruzados.
+//
+//  El estado (texto y sugerencias) vive en searchState para no crear un ciclo de imports.
+//  Singleton. Comparte el marcador con el clic en el mapa (useMapStore.marker).
 // ═══════════════════════════════════════════════════════════════════════════════
-import { ref, watch } from 'vue'
-import maplibregl from 'maplibre-gl'
 import { useMapStore } from './useMapStore.js'
-import { geocodeAddress, suggestAddresses } from '../services/geocode.js'
-import { direccionPopup } from '../services/map-popups.js'
+import { geocodeAddress } from '../services/geocode.js'
+import { searchQuery, suggestions, setQuery, clearSuggestions, type Suggestion } from './searchState'
+import { useFincaPicker } from './useFincaPicker'
 
-interface Suggestion { lat: number; lng: number; short: string; label: string }
-
-const searchQuery = ref('')
-const suggestions = ref<Suggestion[]>([])
-let debounce: ReturnType<typeof setTimeout> | null = null
-let suppress = false // tras elegir una sugerencia, no re-pedir sugerencias por ese cambio de texto
-
-// Autocompletado reactivo: al teclear, pide sugerencias con un pequeño retraso (no spamea).
-watch(searchQuery, (q) => {
-  if (suppress) { suppress = false; return }
-  if (debounce) clearTimeout(debounce)
-  debounce = setTimeout(async () => {
-    try { suggestions.value = await suggestAddresses(q) } catch { suggestions.value = [] }
-  }, 350)
-})
+export type { Suggestion }
 
 export function useSearch() {
-  const { map: mapRef, marker } = useMapStore()
+  const { map: mapRef } = useMapStore()
+  const { selectFincaAt } = useFincaPicker()
 
-  // Vuela a un punto y clava/mueve el pin con su popup.
-  function flyTo(lat: number, lng: number, displayName: string) {
+  // Vuela a un punto y lo SELECCIONA: pin, dossier y panel los pone selectFincaAt, igual
+  // que si el usuario hubiera clicado ahí. Un solo camino, un solo resultado.
+  function irYSeleccionar(lat: number, lng: number) {
     const map = mapRef.value
     if (!map) return
     map.flyTo({ center: [lng, lat], zoom: 17 })
-    const popup = new maplibregl.Popup({ offset: 24 }).setHTML(direccionPopup(displayName))
-    if (marker.current) {
-      marker.current.setLngLat([lng, lat]).setPopup(popup)
-    } else {
-      marker.current = new maplibregl.Marker({ color: '#D24B3E' }).setLngLat([lng, lat]).setPopup(popup).addTo(map)
-    }
-    marker.current.togglePopup()
+    selectFincaAt(map, { lat, lng })
   }
 
   // Elegir una sugerencia del desplegable.
   function pickSuggestion(s: Suggestion) {
-    suppress = true
-    searchQuery.value = s.short
-    suggestions.value = []
-    flyTo(s.lat, s.lng, s.label)
+    setQuery(s.short)
+    clearSuggestions()
+    irYSeleccionar(s.lat, s.lng)
   }
-
-  function clearSuggestions() { suggestions.value = [] }
 
   // Buscar (Enter / lupa): si hay sugerencias, elige la primera; si no, geocodifica el texto.
   async function buscar() {
@@ -63,7 +48,7 @@ export function useSearch() {
         alert('No se encontró la dirección. Intenta quitar el número o ser más general.')
         return
       }
-      flyTo(hit.lat, hit.lng, hit.displayName)
+      irYSeleccionar(hit.lat, hit.lng)
     } catch (error) {
       console.error('Error en la búsqueda:', error)
     }
