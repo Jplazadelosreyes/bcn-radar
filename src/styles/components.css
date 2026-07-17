@@ -71,8 +71,10 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
   /* El botón suelto de capas no existe en escritorio: lo sustituye MapLayersBar (abajo-izq) */
   .fab-map { display: none; }
 
-  /* Panel de herramientas ("Más" de la barra): sube desde la barra de capas, sin taparla */
-  .map-floating-controls { right: auto; left: 82px; bottom: 96px; }
+  /* Panel de herramientas ("Más" de la barra): sube desde la barra de capas, sin taparla.
+     Con .map-section delante para ganar a la regla base (que viene DESPUÉS en este archivo
+     y con la misma especificidad la pisaba: el panel caía a bottom:22 y tapaba la barra). */
+  .map-section .map-floating-controls { right: auto; left: 82px; bottom: 96px; }
 
   /* Franja inferior: zoom y atribución en FILA (apilados robaban altura a la columna) */
   .maplibregl-ctrl-bottom-right {

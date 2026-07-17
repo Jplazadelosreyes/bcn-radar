@@ -50,7 +50,7 @@ export function useCapasDatos() {
         if (cfg.symbol) {
           map.addLayer({
             id: `${id}-label`, type: 'symbol', source: id, minzoom: cfg.minzoom || 0,
-            layout: { 'text-field': cfg.symbol.field, 'text-size': cfg.symbol.size || 10, 'text-allow-overlap': false },
+            layout: { 'text-field': cfg.symbol.field, 'text-font': ['Noto Sans Regular'], 'text-size': cfg.symbol.size || 10, 'text-allow-overlap': false },
             paint: { 'text-color': cfg.symbol.color || '#1B2740', 'text-halo-color': '#fff', 'text-halo-width': 1.4 },
           })
         }

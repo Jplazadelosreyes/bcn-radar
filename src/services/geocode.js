@@ -38,10 +38,15 @@ export async function suggestAddresses(query, limit = 6) {
   if (q.length < 3) return []
   const url = `${BASE}/search?format=json&addressdetails=1&limit=${limit}&countrycodes=es&q=${encodeURIComponent(q + ', Barcelona')}`
   const results = await (await fetch(url)).json()
-  return (results || []).map((r) => ({
-    lat: Number(r.lat),
-    lng: Number(r.lon),
-    short: shortLabel(r),
-    label: r.display_name,
-  }))
+  // Nominatim devuelve a veces varios objetos OSM para la misma dirección (vía + portal);
+  // con la etiqueta corta ya colapsados, el desplegable mostraba entradas idénticas.
+  const seen = new Set()
+  return (results || [])
+    .map((r) => ({
+      lat: Number(r.lat),
+      lng: Number(r.lon),
+      short: shortLabel(r),
+      label: r.display_name,
+    }))
+    .filter((s) => (seen.has(s.short) ? false : (seen.add(s.short), true)))
 }

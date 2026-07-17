@@ -61,7 +61,7 @@ export function useZones() {
       })
       map.addLayer({
         id: `${src}-label`, type: 'symbol', source: src, minzoom: ST.labelMinzoom,
-        layout: { 'text-field': labelField, 'text-size': ST.size, 'text-transform': ST.upper, 'text-letter-spacing': ST.spacing, 'text-allow-overlap': false },
+        layout: { 'text-field': labelField, 'text-font': ['Noto Sans Regular'], 'text-size': ST.size, 'text-transform': ST.upper, 'text-letter-spacing': ST.spacing, 'text-allow-overlap': false },
         paint: { 'text-color': ST.color, 'text-halo-color': '#fff', 'text-halo-width': 1.8 },
       })
       // Clic en una zona → la selecciona (resalta) y muestra su nombre; volver a clicar deselecciona

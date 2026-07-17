@@ -133,7 +133,7 @@ export function useTransporteModos() {
       map.addLayer({
         id: `${srcId}-labels`, type: 'symbol', source: `${srcId}-stops`,
         minzoom: cfg.key === 'bus' ? 16 : 14,
-        layout: { visibility: visible ? 'visible' : 'none', 'text-field': ['get', 'name'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true },
+        layout: { visibility: visible ? 'visible' : 'none', 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 10, 'text-offset': [0, 1], 'text-anchor': 'top', 'text-optional': true },
         paint: { 'text-color': '#1B2740', 'text-halo-color': '#fff', 'text-halo-width': 1.4 },
       })
       stopLayerIds.push(`${srcId}-stops`)
@@ -173,7 +173,7 @@ export function useTransporteModos() {
 
   return {
     TRANSPORTES,
-    transportStatus, transportLines, transportSelected, busSearch, busExpanded,
+    transportStatus, transportLines, transportSelected, transportVisible, busSearch, busExpanded,
     chipsFor, setAllLines, toggleLine, loadTransport, applyLineFilter, activeChips,
   }
 }

@@ -76,6 +76,15 @@ export function createMap(container = 'map') {
     attributionControl: { compact: true },
   })
 
+  // Si el contenedor mide 0 al construir (layout aún no resuelto: CSS tardío, iframe,
+  // pestaña en segundo plano), MapLibre cae a su lienzo por defecto de 400×300 y su
+  // trackResize DESCARTA el primer aviso del ResizeObserver → el mapa queda chico para
+  // siempre. Observamos el contenedor por nuestra cuenta: cada cambio real de tamaño
+  // (incluido el aviso inicial) fuerza un resize. Idempotente si ya está bien.
+  const ro = new ResizeObserver(() => { if (map) map.resize() })
+  ro.observe(map.getContainer())
+  map.once('remove', () => ro.disconnect())
+
   // Zoom. La brújula nativa se omite a propósito: CompassRoseControl (abajo) ya cumple esa
   // función — con las dos activas salían dos brújulas seguidas en la misma columna.
   map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'top-right')
@@ -96,11 +105,16 @@ export function createMap(container = 'map') {
   map.touchZoomRotate.enableRotation()
   if (map.touchPitch) map.touchPitch.enable()
 
-  // Atribución plegada al ⓘ (obligatoria por licencia, pero mínima: se expande al tocarla)
-  map.once('load', () => {
+  // Atribución plegada al ⓘ (obligatoria por licencia, pero mínima: se expande al tocarla).
+  // MapLibre la RE-ABRE cada vez que una fuente nueva aporta créditos (nuestras capas los
+  // añaden después del load), así que además del load se pliega en el primer idle, cuando
+  // ya está todo montado. En móvil, abierta ocupaba la franja entera y pisaba el zoom.
+  const collapseAttrib = () => {
     const attrib = map.getContainer().querySelector('details.maplibregl-ctrl-attrib')
     if (attrib) attrib.removeAttribute('open')
-  })
+  }
+  map.once('load', collapseAttrib)
+  map.once('idle', collapseAttrib)
 
   return map
 }

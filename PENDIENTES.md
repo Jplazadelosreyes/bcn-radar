@@ -1,7 +1,35 @@
 # BCN Radar — Pendientes y hoja de ruta
 
-> Estado al **2026-07-15**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
+> Estado al **2026-07-17**. Este archivo evita reprocesar todo el proyecto al abrir una sesión
 > nueva: resume qué está hecho, qué falta y en qué orden. Actualízalo al cerrar cada sesión.
+
+## HECHO — sesión 2026-07-17 (QA de interactividad escritorio + móvil, 7 fixes)
+
+QA end-to-end en navegador (escritorio 1280×720 y móvil 375×812). **El flujo clic-finca→dossier
+quedó CONFIRMADO EN VIVO** (pendiente desde la sesión anterior): búsqueda→sugerencia→flyTo→pin→
+dossier con Catastro en vivo; clic directo en edificio→dossier; clic en calle→estado vacío con
+guía ("Prueba sobre un edificio"). Verde: typecheck 0 · eslint limpio · 19/19 tests. SIN commitear.
+
+- **Mapa 400×300 si el contenedor mide 0 al crear** (`useMap.ts`): MapLibre descarta el primer
+  aviso de su ResizeObserver y nunca se recuperaba. RO propio que fuerza `map.resize()`.
+- **Chip activo ↔ checkbox desincronizados** (`TransporteSection.vue` + `useTransporteModos.ts`):
+  el checkbox de modo no tenía `:checked` — quitar Metro por chip lo dejaba marcado. Enlazado a
+  `transportVisible` (ahora expuesto) y las líneas se ocultan al apagar el modo.
+- **"Medir distancia" sin binding** (`MapControls.vue`): `:checked="measuring"` añadido.
+- **Panel de herramientas tapaba la barra de capas en escritorio** (`components.css`): la regla
+  base (bottom:22) pisaba el override del media query por orden de cascada → especificidad
+  `.map-section .map-floating-controls`.
+- **Atribución expandida pisaba el zoom en móvil** (`useMap.ts`): MapLibre la re-abre cuando una
+  fuente añade créditos tras el load → se pliega también en el primer `idle`. Franja inferior
+  móvil ahora con CERO solapes medidos por geometría.
+- **404 masivos de glyphs** (4 capas symbol): pedían "Open Sans Regular" que OpenFreeMap no
+  sirve (cientos de 404). `text-font: ['Noto Sans Regular']` en zonas/auto-zonas/transporte/datos.
+- **Sugerencias duplicadas en el buscador** (`geocode.js`): dedupe por etiqueta corta.
+- **Auto-zonas no reintentaba** (`useAutoZones.ts`): un fallo cacheaba la promesa rechazada para
+  siempre; ahora limpia el cache al fallar + 1 reintento a los 3 s.
+- Ojo entorno de prueba: el panel de preview carga la página con viewport 0×0 y pausa rAF en
+  segundo plano — el mapa chico y fuentes GeoJSON vacías de esta sesión eran ESO, no bugs de la
+  app (en Chrome real no pasa). El fix del RO igual protege embeds/iframes reales.
 
 ## HECHO — sesión 2026-07-14/15 (Chrome MCP + layout Google + móvil + sistema visual)
 

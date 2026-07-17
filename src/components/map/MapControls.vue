@@ -13,7 +13,7 @@ const { controlsOpen } = usePanels()
 const { start: sheetTouchStart, move: sheetTouchMove, end: sheetTouchEnd } = useSheetDrag()
 const { radioOn, radioMetros, radioLabel } = useRadio()
 const { clickedCoords } = useFinca()
-const { measureTotal, setMeasuring, clear: clearMeasure } = useMeasure()
+const { measureTotal, measuring, setMeasuring, clear: clearMeasure } = useMeasure()
 </script>
 
 <template>
@@ -46,7 +46,7 @@ const { measureTotal, setMeasuring, clear: clearMeasure } = useMeasure()
     <div class="control-section">
       <h4>Herramientas</h4>
       <div class="control-group">
-        <label class="ctrl"><input type="checkbox" @change="setMeasuring(($event.target as HTMLInputElement).checked)"><span>Medir distancia</span></label>
+        <label class="ctrl"><input type="checkbox" :checked="measuring" @change="setMeasuring(($event.target as HTMLInputElement).checked)"><span>Medir distancia</span></label>
       </div>
       <div v-if="measureTotal" class="measure-readout">
         <span class="measure-total">{{ measureTotal }}</span>

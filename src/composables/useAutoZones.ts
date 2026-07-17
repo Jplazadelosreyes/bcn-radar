@@ -41,7 +41,10 @@ function setVis(ids: string[], on: boolean) {
   ids.forEach((id) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'))
 }
 
-// Borde municipal de Barcelona: trazo suave en el rojo de la casa
+// Borde municipal de Barcelona: trazo suave en el rojo de la casa.
+// Si el intento falla (red, mapa a medio cargar), se limpia el cache para que el
+// próximo apply() reintente — antes la promesa rechazada quedaba cacheada para
+// siempre y el contorno no volvía a aparecer hasta recargar la página.
 async function ensureCity() {
   if (creating.city) return creating.city
   creating.city = (async () => {
@@ -59,6 +62,7 @@ async function ensureCity() {
       paint: { 'line-color': '#E1251B', 'line-width': 1.8, 'line-opacity': 0.45 },
     })
   })()
+  creating.city.catch(() => { creating.city = undefined })
   return creating.city
 }
 
@@ -77,12 +81,13 @@ async function ensureZone(zone: string) {
     map.addLayer({
       id: `${src}-label`, type: 'symbol', source: src, minzoom: ST.minzoom, layout: {
         visibility: 'none',
-        'text-field': ST.label, 'text-size': ST.size, 'text-transform': ST.upper,
+        'text-field': ST.label, 'text-font': ['Noto Sans Regular'], 'text-size': ST.size, 'text-transform': ST.upper,
         'text-letter-spacing': ST.spacing, 'text-allow-overlap': false,
       },
       paint: { 'text-color': ST.color, 'text-halo-color': '#fff', 'text-halo-width': 1.8, 'text-opacity': 0.7 },
     })
   })()
+  creating[zone]!.catch(() => { creating[zone] = undefined })
   return creating[zone]
 }
 
@@ -103,7 +108,13 @@ async function apply(level: string) {
 // Punto de entrada: llamar una vez tras crear el mapa
 export function initAutoZones(m: any, mapContext: Ref<MapContext>) {
   map = m
-  const run = () => apply(mapContext.value.level).catch((e) => console.warn('auto-zonas', e))
+  // Un fallo al arrancar (red caída un instante) reintenta una vez a los 3 s; después
+  // de eso, cada cambio de nivel vuelve a intentar (ensureCity ya no cachea fallos).
+  let retried = false
+  const run = () => apply(mapContext.value.level).catch((e) => {
+    console.warn('auto-zonas', e)
+    if (!retried) { retried = true; setTimeout(run, 3000) }
+  })
   if (map.loaded()) run(); else map.once('load', run)
   watch(() => mapContext.value.level, run)
 }

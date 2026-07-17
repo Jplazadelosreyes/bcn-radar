@@ -6,7 +6,7 @@ import { useExploradorParadas } from '../../../composables/useExploradorParadas'
 
 const {
   TRANSPORTES,
-  transportStatus, transportLines, transportSelected, busSearch, busExpanded,
+  transportStatus, transportLines, transportSelected, transportVisible, busSearch, busExpanded,
   chipsFor, setAllLines, toggleLine, loadTransport,
 } = useTransporteModos()
 
@@ -33,13 +33,15 @@ const { transitOn, transitStatus, toggleTransit } = useExploradorParadas()
     <div class="mov-lineas">
       <div v-for="t in TRANSPORTES" :key="t.key" class="tr-mode">
         <label class="ctrl">
-          <input type="checkbox" @change="loadTransport(t, ($event.target as HTMLInputElement).checked)">
+          <!-- :checked enlazado al store: el chip superior también apaga el modo y el
+               checkbox debe reflejarlo (antes quedaba marcado y desincronizado) -->
+          <input type="checkbox" :checked="!!transportVisible[t.key]" @change="loadTransport(t, ($event.target as HTMLInputElement).checked)">
           <span class="tr-swatch" :style="{ background: t.color }"></span>
           <span>{{ t.label }}</span>
           <span v-if="transportStatus[t.key] === 'loading'" class="tr-status">cargando…</span>
           <span v-else-if="transportStatus[t.key] === 'error'" class="tr-status tr-err">error</span>
         </label>
-        <div v-if="transportLines[t.key] && transportLines[t.key].length" class="tr-lines">
+        <div v-if="transportVisible[t.key] && transportLines[t.key] && transportLines[t.key].length" class="tr-lines">
           <!-- Control masivo: todas/ninguna + contador; el bus además expande su lista -->
           <div class="tr-toolbar">
             <button type="button" class="tr-mini" @click="setAllLines(t.key, true)">Todas</button>
