@@ -31,6 +31,17 @@ guía ("Prueba sobre un edificio"). Verde: typecheck 0 · eslint limpio · 19/19
   segundo plano — el mapa chico y fuentes GeoJSON vacías de esta sesión eran ESO, no bugs de la
   app (en Chrome real no pasa). El fix del RO igual protege embeds/iframes reales.
 
+### 2ª pasada (misma sesión): QA profundo de capas y herramientas — TODO verificado en vivo
+Renta media (coropleta + popup "Sección 06-061 · 27.484 €/año") · Barrios/Secciones · WMS
+urbanismo (PIU Qualificació urbanística, GetMap OK; catálogo MUC/ACA presente) · Parcelas
+Catastro (WMS renderizando a z18) · Bicing/Carriles bici/Salud (status ok + chips) · explorador
+de paradas COMPLETO (parada → chips → H10 dibuja recorrido → quitar) · drill-down del dossier
+por zoom (ciudad→distrito→barrio→sección, con ficha de rentabilidad) · Edificios 3D (extrusión
+verificada con pitch 65) · Radio 500 m (círculo + fill) · botón PDF = stub deliberado (alert).
+**Fix nº 8** (commiteado aparte): `.stop-explorer` en escritorio quedaba en top:16/left:16
+(herencia de la era topbar) DEBAJO del buscador (z 5 vs 900) y pegado al rail — título y ✕
+inaccesibles. Ahora esquina superior derecha (`components.css`, mismo truco de especificidad).
+
 ## HECHO — sesión 2026-07-14/15 (Chrome MCP + layout Google + móvil + sistema visual)
 
 Se conectó **chrome-devtools-mcp** (Chrome real, WebGL de verdad) → por fin se puede VER el

@@ -76,6 +76,12 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
      y con la misma especificidad la pisaba: el panel caía a bottom:22 y tapaba la barra). */
   .map-section .map-floating-controls { right: auto; left: 82px; bottom: 96px; }
 
+  /* Explorador de parada: en escritorio va a la esquina superior DERECHA. Su posición base
+     (top:16 left:16, de la era topbar) hoy cae DEBAJO del buscador (z 900 vs 5) y pegada al
+     rail: el título quedaba oculto. La columna izquierda ya es del buscador + panel; la
+     esquina derecha está libre. Mismo truco de especificidad que arriba. */
+  .map-section .stop-explorer { top: 16px; right: 16px; left: auto; z-index: 910; }
+
   /* Franja inferior: zoom y atribución en FILA (apilados robaban altura a la columna) */
   .maplibregl-ctrl-bottom-right {
     display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 0 12px 10px 0;
