@@ -6,14 +6,20 @@
 // Las miniaturas de satélite y ortofoto son tiles REALES de las mismas fuentes que sirven el
 // mapa, recortadas al mismo encuadre (el Eixample) para que se comparen entre sí. Callejero y
 // relieve son vectoriales y no tienen tile de imagen, así que se dibujan en SVG.
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useMapTools } from '../../composables/useMapTools'
 import { usePanels } from '../../composables/usePanels'
 
 const { basemap, edificios3d, relieve3d, setBasemap, toggleEdificios3d, toggleRelieve3d } = useMapTools()
-const { openControls } = usePanels()
+const { openControls, controlsOpen } = usePanels()
 
 const open = ref(false)
+
+// El panel de herramientas ("Más") vive en la misma esquina y ya contiene todo lo de esta
+// barra: mientras esté abierto, el desplegable no se abre (se pisaban uno al otro). Y si se
+// abre el de herramientas con este desplegado, este se pliega al instante.
+const expand = (v: boolean) => { open.value = v && !controlsOpen.value }
+watch(controlsOpen, (on) => { if (on) open.value = false })
 
 const TILE_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/14/6119/8290'
 const TILE_ORTO = 'https://geoserveis.icgc.cat/servei/catalunya/orto-territorial/wms/service?service=WMS&request=GetMap&version=1.3.0&layers=ortofoto_color_vigent&styles=&format=image/png&transparent=false&crs=EPSG:3857&bbox=239704.75,5068080.5,242150.73,5070526.5&width=128&height=128'
@@ -31,7 +37,7 @@ const actual = computed(() => BASES.find((b) => b.id === basemap.value) ?? BASES
 <template>
   <div class="layers-bar" :class="{ open }" @mouseleave="open = false">
     <!-- Tarjeta siempre visible: miniatura del mapa base actual -->
-    <button class="lb-card lb-toggle" @click="open = !open" @mouseenter="open = true" :aria-expanded="open" title="Capas del mapa">
+    <button class="lb-card lb-toggle" @click="expand(!open)" @mouseenter="expand(true)" :aria-expanded="open" title="Capas del mapa">
       <span class="lb-thumb">
         <img v-if="actual.img" :src="actual.img" alt="" loading="lazy">
         <svg v-else-if="actual.id === 'relieve'" viewBox="0 0 64 64" class="lb-svg"><rect width="64" height="64" fill="#E7EEDC"/><g fill="none" stroke="#BFA478" stroke-width="1.5"><path d="M2 50c9-3 13-11 21-11s13 7 21 5 12-7 18-7"/><path d="M6 58c8-4 12-15 22-15s15 10 24 7"/><path d="M16 43c4-4 7-8 12-8s8 4 12 4"/><path d="M24 36c3-3 5-5 8-5s5 2 7 3"/></g><path d="M0 0h64v64H0z" fill="none"/></svg>

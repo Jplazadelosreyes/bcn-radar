@@ -42,6 +42,19 @@ verificada con pitch 65) · Radio 500 m (círculo + fill) · botón PDF = stub d
 (herencia de la era topbar) DEBAJO del buscador (z 5 vs 900) y pegado al rail — título y ✕
 inaccesibles. Ahora esquina superior derecha (`components.css`, mismo truco de especificidad).
 
+### 3ª pasada (reporte del operador con pantallazos): 2 solapes más, corregidos
+- **✕ de cerrar pisaba la cabecera del panel** (escritorio): `.panel-close` en top:8/right:8
+  caía sobre la esquina del card de cabecera Y sobre el chevron (dos controles apilados).
+  Ahora vive integrada en la fila de la cabecera y la cabecera reserva 60px a la derecha
+  (`components.css`, media escritorio). En móvil ni existe (manda el asa del sheet).
+- **Desplegable de capas se abría ENCIMA del panel de herramientas**: comparten esquina
+  inferior-izquierda y el de herramientas ya contiene todo lo de la barra. Regla nueva en
+  `MapLayersBar.vue`: mientras `controlsOpen`, el hover/click no despliega; y si se abre
+  herramientas con el desplegable abierto, se pliega al instante (watch). En móvil la barra
+  es `display:none` — sin efecto.
+Verificado por geometría (getBoundingClientRect sin intersección) y por estado en los 3
+escenarios (abrir A→B, hover con B abierto, cerrar B→hover vuelve). Verde: typecheck·lint·19 tests.
+
 ## HECHO — sesión 2026-07-14/15 (Chrome MCP + layout Google + móvil + sistema visual)
 
 Se conectó **chrome-devtools-mcp** (Chrome real, WebGL de verdad) → por fin se puede VER el

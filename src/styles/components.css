@@ -168,6 +168,12 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
     box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float);
     overflow: hidden auto;
   }
+  /* La ✕ de cerrar se integra EN la fila de la cabecera. Su posición base (top:8/right:8)
+     quedaba pisando la esquina del card de cabecera y encima del chevron: dos controles
+     apilados. La cabecera reserva hueco a la derecha para que nada quede debajo de la ✕. */
+  .sidebar .panel-close { top: 23px; right: 24px; }
+  .sidebar > .capas-panel > .capas-head { padding-right: 60px; }
+
   .sidebar::-webkit-scrollbar { width: 8px; }
 
   /* Cards de sección (exploración): sobre el fondo bruma, superficie clara para que resalten */
