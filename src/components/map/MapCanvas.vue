@@ -70,6 +70,15 @@ onMounted(() => {
     addMeasureLayers(map)
 
     setDrillLevel(map.getZoom())
+
+    // Deep-link del QR del dossier PDF: #finca=lat,lng abre la app con esa finca
+    // ya seleccionada — el papel devuelve al mapa vivo.
+    const hashFinca = location.hash.match(/^#finca=(-?\d+\.?\d*),(-?\d+\.?\d*)$/)
+    if (hashFinca) {
+      const lat = +hashFinca[1], lng = +hashFinca[2]
+      map.jumpTo({ center: [lng, lat], zoom: 17 })
+      selectFincaAt(map, { lat, lng })
+    }
   })
 
   // Los controles de basemap / catastro / 3D los gestiona Vue (setBasemap, toggleFincas,

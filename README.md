@@ -59,6 +59,13 @@ Y alrededor: **movilidad** (recorridos reales de metro, bus, Rodalies y FGC desd
 GTFS oficiales; Bicing en vivo), **zonas administrativas** con renta media, **capas urbanísticas**
 del Ajuntament y la Generalitat, y mapa en **2D o 3D** (relieve real por DEM + edificios extruidos).
 
+Y cuando toca llevárselo a la visita: **el dossier en PDF**. Un A4 de cuatro páginas generado
+íntegramente en el navegador (vista de impresión + `window.print`, cero backend) con la ortofoto
+de la parcela, el croquis oficial del Catastro, el mapa de calificación del PIU con sus
+afectaciones en semáforo, las paradas a pie y la checklist del comprador para rellenar a boli.
+Cada dato con su enlace verificable, y un QR en portada que devuelve del papel a la finca exacta
+en el mapa vivo (deep-link `#finca=lat,lng`).
+
 ### Anatomía de un clic
 
 ```mermaid

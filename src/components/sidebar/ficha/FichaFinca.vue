@@ -12,15 +12,15 @@ import BloqueCumplimiento from './finca/BloqueCumplimiento.vue'
 import BloqueLectura from './finca/BloqueLectura.vue'
 import BloqueValor from './finca/BloqueValor.vue'
 import BloquePrivado from './finca/BloquePrivado.vue'
+import { useDossierPrint } from '../../../composables/useDossierPrint'
 
 const { mapContext } = useMapStore()
 const { fincaData, selectedAddress, satelliteThumb, veredictos } = useFinca()
 const { radioStops } = useRadio()
 
-// Exportar informe (stub de portafolio: en producción generaría el PDF con branding).
-const exportReport = () => {
-  alert('Generando Informe Oficial en PDF...\nEn el producto final, esto enviará un email al reclutador con el branding de la empresa.')
-}
+// Dossier PDF: el botón solo enciende el estado; la vista de impresión vive en App.vue
+// (aquí moriría si InfoDossier cambia de ficha a mitad de generación).
+const { imprimiendo } = useDossierPrint()
 </script>
 
 <template>
@@ -71,7 +71,9 @@ const exportReport = () => {
 
       <!-- Acciones -->
       <div class="action-buttons">
-        <button class="export-btn" @click="exportReport">Generar informe (PDF)</button>
+        <button class="export-btn" :disabled="imprimiendo || fincaData.estado !== 'ok'" @click="imprimiendo = true">
+          {{ imprimiendo ? 'Preparando dossier…' : 'Dossier PDF de la finca' }}
+        </button>
       </div>
     </div>
   </div>

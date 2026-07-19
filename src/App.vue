@@ -15,6 +15,8 @@ import InfoDossier from './components/sidebar/InfoDossier.vue'
 import CapasCard from './components/sidebar/CapasCard.vue'
 import MovilidadCard from './components/sidebar/MovilidadCard.vue'
 import ZonasCard from './components/sidebar/ZonasCard.vue'
+import DossierPrint from './components/print/DossierPrint.vue'
+import { useDossierPrint } from './composables/useDossierPrint'
 
 // Navegación por rail (escritorio) / bottom sheet (móvil). Una sección abierta a la vez;
 // el mapa es el protagonista y el panel flota sobre él (modelo Google Maps).
@@ -31,6 +33,10 @@ const { sheetFull, start: sheetTouchStart, move: sheetTouchMove, end: sheetTouch
 
 // Explorador de parada (store useExploradorParadas): lo consume el StopExplorer del área del mapa.
 const { selectedStop, stopChipsView, stopHasSelection, pickStopLine, clearRoute, stopClear } = useExploradorParadas()
+
+// Dossier PDF de la finca: la vista de impresión se monta AQUÍ (no en la ficha) para
+// sobrevivir a los cambios de nivel del sidebar durante la generación. Ver useDossierPrint.
+const { imprimiendo } = useDossierPrint()
 
 // Al cerrar la sección, el sheet vuelve a su forma mínima (si se dejó expandido, la próxima
 // que se abra no debe heredar la altura de la anterior).
@@ -80,5 +86,8 @@ function closePanel() { activeSection.value = null }
         <MapControls />
       </div>
     </main>
+
+    <!-- Dossier PDF: vista de impresión (Teleport a body; invisible en pantalla) -->
+    <DossierPrint v-if="imprimiendo" @done="imprimiendo = false" />
   </div>
 </template>
