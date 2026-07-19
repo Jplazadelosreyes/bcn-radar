@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:apis": "vitest run --config vitest.api.config.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -1,0 +1,28 @@
+# Vigía de las APIs públicas: BCN Radar no tiene backend, así que su única
+# dependencia de verdad es que Catastro, PIU, Overpass, Socrata… sigan vivos.
+# Cada lunes (y a demanda) se les hace una petición real mínima a los ~30
+# endpoints y el informe queda como artefacto. Si algo murió, el run falla
+# y GitHub avisa — sin bloquear jamás el deploy (eso es deploy.yml).
+name: API health
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # lunes 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:apis
+      - uses: actions/upload-artifact@v4
+        if: always() # el informe interesa SOBRE TODO cuando algo falla
+        with:
+          name: api-status
+          path: docs/API_STATUS.md
