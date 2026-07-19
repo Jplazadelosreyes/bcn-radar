@@ -34,7 +34,7 @@ let map: any = null // instancia MapLibre (API amplia; se tipa como any a propó
 watch(theme, (t) => {
   const dark = t === 'dark'
   applyMapTheme(map, dark ? 'night' : 'day')
-  if (map && map.getLayer('bcn-mask')) map.setPaintProperty('bcn-mask', 'fill-color', dark ? '#0B1017' : '#FFFFFF')
+  if (map && map.getLayer('bcn-mask')) map.setPaintProperty('bcn-mask', 'fill-color', dark ? '#151D28' : '#FFFFFF')
 })
 
 onMounted(() => {

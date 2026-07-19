@@ -67,7 +67,7 @@ export function addBcnMask(map, isDark) {
       }
       const world = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]
       map.addSource('bcn-mask', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [world, ...holes] } } })
-      map.addLayer({ id: 'bcn-mask', type: 'fill', source: 'bcn-mask', paint: { 'fill-color': isDark ? '#0B1017' : '#FFFFFF', 'fill-opacity': 0.6 } })
+      map.addLayer({ id: 'bcn-mask', type: 'fill', source: 'bcn-mask', paint: { 'fill-color': isDark ? '#151D28' : '#FFFFFF', 'fill-opacity': 0.6 } })
     })
     .catch(err => console.warn('No se pudo cargar la máscara de Barcelona:', err))
 }

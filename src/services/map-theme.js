@@ -71,62 +71,74 @@ export const MAP_COLORS = {
   },
 
   // ══════════════════════════════ 🌙  NOCHE  ══════════════════════════════
+  //  Referencia: el MODO NOCHE oficial de Google Maps (su JSON de styling clásico).
+  //  Claves de ese estilo, replicadas aquí:
+  //   · Fondo azul grisáceo CÁLIDO (#242F3E), no negro azulado: descansa la vista.
+  //   · Calles apenas un tono más claras que el fondo (#38414E): se leen por contorno
+  //     y etiqueta, no por brillo. Solo la autopista destaca, en ámbar apagado (#746855).
+  //   · Sendas/aceras casi invisibles (el punteado peatonal del Eixample gritaba).
+  //   · Halo de las letras = COLOR DEL FONDO, no negro: la letra flota suave.
   night: {
     // ── Fondo y agua ──
-    background:      '#0F1A21',
-    water:           '#0B2637',
-    waterway:        '#20455A',
+    background:      '#21313C',
+    water:           '#14222D',
+    waterway:        '#2B4254',
 
     // ── Verdes y usos de suelo ──
-    landPark:        '#16281F',
-    landParkEdge:    '#1D3327',
-    landWood:        '#15291E',
-    landGrass:       '#173021',
-    landResidential: '#152530',
-    landSand:        '#2A2A1E',
-    landIce:         '#1F3038',
-    landPitch:       '#1A2A2A',
-    landCemetery:    '#182A20',
-    landHospital:    '#2A2030',
-    landSchool:      '#26281E',
-    aeroway:         '#1C2833',
-    aerowayLine:     '#2A3A44',
+    landPark:        '#213A38',
+    landParkEdge:    '#2A4643',
+    landWood:        '#1C332E',
+    landGrass:       '#254039',
+    landResidential: '#243440',
+    landSand:        '#33352C',
+    landIce:         '#263843',
+    landPitch:       '#253B3B',
+    landCemetery:    '#233830',
+    landHospital:    '#3A3038',
+    landSchool:      '#33372C',
+    aeroway:         '#283641',
+    aerowayLine:     '#384754',
 
-    // ── Edificios (footprints 2D) ──
-    building:        '#1E2F3B',
-    buildingEdge:    '#33485A',
-    building3D:      '#233240',
+    // ── Edificios (footprints 2D) — apenas se insinúan, como en Google ──
+    building:        '#2A3A45',
+    buildingEdge:    '#364754',
+    building3D:      '#2C3C48',
 
-    // ── Calles (relleno) — familia "celeste plomo": resalta suave ──
-    roadMotorway:        '#A6BDCC',   // autopista / autovía (la más marcada)
-    roadTrunkPrimary:    '#97B0C1',   // vías primarias
-    roadSecondaryTertiary:'#7E96A6',  // secundarias / terciarias
-    roadLink:            '#8AA0AE',   // enlaces / ramales
-    roadMinor:           '#5E7078',   // calles menores
-    roadServiceTrack:    '#55666E',   // servicio / pistas
-    roadPath:            '#4A5A62',   // sendas / peatonal
-    rail:                '#3F4D55',   // ferrocarril / metro
-    // ── Calles (contorno / casing) ──
-    roadMajorCasing:     '#2B3E4A',
-    roadMinorCasing:     '#1C2A30',
+    // ── Calles (relleno) — gama Google noche: gris azulado poco por encima del fondo,
+    //    jerarquía por matiz sutil y la autopista en ámbar apagado (marca de la casa).
+    //    Subidas un paso sobre el Google puro: a zoom de barrio se fundían con el fondo.
+    roadMotorway:        '#8D7550',   // autopista / autovía (ámbar Google, un punto más vivo)
+    roadTrunkPrimary:    '#56697B',   // vías primarias
+    roadSecondaryTertiary:'#47596A',  // secundarias / terciarias
+    roadLink:            '#4E5F6F',   // enlaces / ramales
+    roadMinor:           '#3C4C59',   // calles menores
+    roadServiceTrack:    '#344350',   // servicio / pistas
+    roadPath:            '#384754',   // sendas / aceras (el punteado del Eixample, MUDO)
+    rail:                '#313F4C',   // ferrocarril / metro (transit de Google)
+    // ── Calles (contorno / casing) — el trazo oscuro que recorta la calle ──
+    roadMajorCasing:     '#1B2831',
+    roadMinorCasing:     '#1B2831',
     // ── Límites ──
-    boundary:            '#3A4A54',
+    boundary:            '#3F5464',
 
-    // ── ETIQUETAS / LETRAS ──
-    labelCountry:    '#D8E2E6',
-    labelState:      '#B9C7CD',
-    labelCity:       '#DDE7EA',
-    labelTown:       '#C6D2D6',
-    labelVillage:    '#AEBBC0',
-    labelDistrict:   '#9FB0B6',
-    labelStreet:     '#93A6AE',
-    labelStreetPath: '#7E8F86',
-    labelWater:      '#6E9AB8',
-    labelWaterway:   '#6BA0C4',
-    labelPoi:        '#8B9AA2',
-    labelPoiTransit: '#6E9AB8',
-    labelAirport:    '#8B9AA2',
-    labelHalo:       '#0A1319',
+    // ── ETIQUETAS / LETRAS — como Google noche: lugares en ámbar cálido (#D59563),
+    //    calles en gris azulado claro y halo APENAS más oscuro que el fondo: la letra
+    //    recorta sin el cerco negro duro. (El gris Google puro #9CA5B3 se perdía
+    //    a zoom de barrio: todo sube un paso de luz.) ──
+    labelCountry:    '#D8E3E1',
+    labelState:      '#B9C8C8',
+    labelCity:       '#E0AA66',   // ciudades: el ámbar señature de Google noche, más vivo
+    labelTown:       '#D29E62',
+    labelVillage:    '#BF925C',
+    labelDistrict:   '#AEBEC4',   // barrios / distritos
+    labelStreet:     '#B7C6CB',   // nombres de calle
+    labelStreetPath: '#8FA0A8',
+    labelWater:      '#7A92A5',
+    labelWaterway:   '#88A3B6',
+    labelPoi:        '#CFA265',
+    labelPoiTransit: '#95ACBD',
+    labelAirport:    '#B7C6CB',
+    labelHalo:       '#1C2932',
   },
 }
 
@@ -207,7 +219,14 @@ function rolesFor(l) {
 
 // Aplica una paleta ('day' | 'night') a todas las capas vectoriales del mapa.
 export function applyMapTheme(map, mode) {
-  if (!map || !map.isStyleLoaded()) return
+  if (!map) return
+  // OJO: isStyleLoaded() da false mientras haya CUALQUIER carga en vuelo (tiles incluidas);
+  // con el guard antiguo, cambiar el tema en ese momento se PERDÍA en silencio (el chrome
+  // cambiaba y el mapa no). setPaintProperty funciona en cuanto el estilo existe: basta con
+  // diferir al 'load' si aún no hay estilo, nunca abortar.
+  let styleReady = false
+  try { styleReady = (map.getStyle()?.layers || []).length > 0 } catch { styleReady = false }
+  if (!styleReady) { map.once('load', () => applyMapTheme(map, mode)); return }
   const C = MAP_COLORS[mode] || MAP_COLORS.day
   for (const l of map.getStyle().layers) {
     for (const [prop, role] of rolesFor(l)) {
@@ -215,6 +234,12 @@ export function applyMapTheme(map, mode) {
       if (val == null || !map.getLayer(l.id)) continue
       try { map.setPaintProperty(l.id, prop, val) } catch { /* capa sin esa prop: ignorar */ }
     }
+  }
+  // Zonas peatonales con trama de IMAGEN (pedestrian_polygon): el patrón blanco no se
+  // retiñe con setPaintProperty como los colores — de noche brillaba como neón sobre el
+  // mapa oscuro. Se atenúa fuerte en noche y vuelve a plena luz de día.
+  if (map.getLayer('road_area_pattern')) {
+    try { map.setPaintProperty('road_area_pattern', 'fill-opacity', mode === 'night' ? 0.08 : 1) } catch { /* sin la capa: ignorar */ }
   }
   applyMapOptions(map)
 }
