@@ -88,6 +88,8 @@ onBeforeUnmount(() => publicarAlto(0))
   border: 1px solid var(--edge); border-top: 0;
   border-radius: 0 0 var(--r-card) var(--r-card);
   box-shadow: var(--shadow-float);
+  /* La lista cae desde la cápsula con un fundido corto en vez de aparecer de golpe */
+  animation: drop-in var(--dur-fast) var(--ease);
 }
 /* Hilo separador entre la cápsula y la lista (no un hueco: siguen siendo la misma pieza) */
 .search-suggest::before {

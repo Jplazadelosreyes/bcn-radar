@@ -37,16 +37,24 @@ class CompassRoseControl {
     this._box = document.createElement('div')
     this._box.className = 'maplibregl-ctrl maplibregl-ctrl-group compass-rose'
     this._box.title = 'Volver al norte'
+    // Rosa náutica de 8 puntas con sombreado clásico (cada punta partida en mitad luz /
+    // mitad sombra) y el Norte en el rojo de la marca. Los colores son tokens CSS del
+    // tema → la esfera cambia sola entre día y noche, sin hex fijos.
     this._box.innerHTML = `
-      <svg viewBox="0 0 48 48" width="40" height="40">
+      <svg viewBox="0 0 48 48" width="36" height="36" aria-hidden="true">
         <g class="compass-dial">
-          <circle cx="24" cy="24" r="21" fill="#fff" stroke="#E6E9EF"/>
-          <polygon points="24,5 28,24 24,21 20,24" fill="#D24B3E"/>
-          <polygon points="24,43 20,24 24,27 28,24" fill="#8A93A3"/>
-          <text x="24" y="13" text-anchor="middle" font-size="8" font-weight="700" fill="#0E1726" font-family="Inter,sans-serif">N</text>
-          <text x="24" y="42" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">S</text>
-          <text x="42" y="26.5" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">E</text>
-          <text x="6" y="26.5" text-anchor="middle" font-size="6" fill="#9098A4" font-family="Inter,sans-serif">O</text>
+          <circle cx="24" cy="24" r="21" fill="var(--surface)" stroke="var(--border-2)"/>
+          <path d="M31.8 16.2 L27 24 L31.8 31.8 L24 27 L16.2 31.8 L21 24 L16.2 16.2 L24 21 Z"
+                fill="var(--text-mut)" opacity=".45"/>
+          <path d="M42 24 L27.4 20.6 L24 24 Z" fill="var(--border-2)"/>
+          <path d="M42 24 L27.4 27.4 L24 24 Z" fill="var(--text-lo)"/>
+          <path d="M24 42 L27.4 27.4 L24 24 Z" fill="var(--border-2)"/>
+          <path d="M24 42 L20.6 27.4 L24 24 Z" fill="var(--text-lo)"/>
+          <path d="M6 24 L20.6 27.4 L24 24 Z" fill="var(--border-2)"/>
+          <path d="M6 24 L20.6 20.6 L24 24 Z" fill="var(--text-lo)"/>
+          <path d="M24 6 L20.6 20.6 L24 24 Z" fill="var(--accent)"/>
+          <path d="M24 6 L27.4 20.6 L24 24 Z" fill="var(--accent-ink)"/>
+          <circle cx="24" cy="24" r="2.3" fill="var(--surface)" stroke="var(--text-lo)"/>
         </g>
       </svg>`
     this._dial = this._box.querySelector('.compass-dial') as HTMLElement

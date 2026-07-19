@@ -123,6 +123,9 @@ const actual = computed(() => BASES.find((b) => b.id === basemap.value) ?? BASES
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-float);
+  /* v-show reinicia la animación en cada apertura: el panel brota desde la tarjeta */
+  animation: panel-pop var(--dur) var(--ease);
+  transform-origin: bottom left;
 }
 .lb-group { display: flex; flex-direction: column; gap: 8px; }
 .lb-group-t { font: 700 var(--fs-label)/1 var(--sans); letter-spacing: var(--tk-label); text-transform: uppercase; color: var(--text-mut); }
@@ -134,11 +137,11 @@ const actual = computed(() => BASES.find((b) => b.id === basemap.value) ?? BASES
   display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; cursor: pointer;
   border: 1px solid var(--edge); border-radius: var(--r-pill); background: var(--surface-2);
   color: var(--text); font: 600 var(--fs-sm)/1 var(--sans); white-space: nowrap;
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
 }
 .lb-chip svg { width: 15px; height: 15px; flex: none; }
 .lb-chip:hover { border-color: var(--carto); color: var(--carto); }
-.lb-chip:active { background: var(--surface-3); }
+.lb-chip:active { background: var(--surface-3); transform: scale(.96); }
 .lb-chip.on { background: color-mix(in srgb, var(--carto) 14%, transparent); border-color: var(--carto); color: var(--carto); }
 
 /* Móvil: pospuesto (se resuelve con el resto del layout móvil) */

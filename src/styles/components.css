@@ -14,9 +14,11 @@
 /* ── Paneles ocultables + botones flotantes (base: escritorio se comporta como antes) ── */
 .panel-close { display: flex; position: absolute; top: 8px; right: 8px; z-index: 30; width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-lo); cursor: pointer; font-size: 12px; align-items: center; justify-content: center; }
 .panel-close:hover { background: var(--surface-3); color: var(--accent); }
-.fab { display: flex; position: absolute; z-index: 1100; width: 46px; height: 46px; border: 1px solid var(--edge); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-md); border-radius: var(--r-card); transition: border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease); }
+/* 42px = talla única de los botones flotantes sueltos (.fab, .fab-round, .map-rail-theme):
+   convivían 46/42/42 y el desajuste se notaba en cuanto dos quedaban cerca. */
+.fab { display: flex; position: absolute; z-index: 1100; width: 42px; height: 42px; border: 1px solid var(--edge); background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)); color: var(--text-hi); cursor: pointer; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow-md); border-radius: var(--r-card); transition: border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease); }
 .fab:hover { border-color: var(--accent); transform: translateY(-1px); }
-.fab:active { transform: translateY(0); }
+.fab:active { transform: translateY(0) scale(.95); }
 
 /* ═══ Controles nativos del mapa: vestidos con NUESTRO material ═══
    MapLibre los sirve como botones blancos de librería; aquí pasan a ser vidrio, con el mismo
@@ -32,6 +34,9 @@
 .maplibregl-ctrl-group button + button { border-top: 1px solid var(--edge); }
 .maplibregl-ctrl-group button:hover { background: var(--surface-3); }
 .maplibregl-ctrl-group button:active { background: var(--surface-2); }
+/* Al pulsar, el icono se encoge un punto: confirmación táctil sin mover el botón */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { transition: transform var(--dur-fast) var(--ease); }
+.maplibregl-ctrl-group button:active .maplibregl-ctrl-icon { transform: scale(.88); }
 /* Los iconos de MapLibre son SVG negros incrustados: de noche se invierten para seguir vivos */
 html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplibregl-ctrl-icon { filter: invert(.88) hue-rotate(180deg); }
 
@@ -47,9 +52,18 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
 .fab-round { display: none; } /* botones redondos solo-móvil (speed-dial, tema) */
 .sheet-handle { display: none; } /* asa de bottom sheet, solo móvil */
 
+/* ═══ Movimiento de entrada (SOLO escritorio) ═══
+   Los flotantes no aparecen de golpe: suben 10px con un fundido corto. En móvil NO se usa —
+   los sheets ya se deslizan con transition:transform y una animation los pisaría.
+   (prefers-reduced-motion lo anula globalmente desde tokens.css.) */
+@keyframes panel-pop { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
 /* Escritorio: los paneles colapsados desaparecen (en móvil se deslizan fuera con transform) */
 @media (min-width: 681px) {
   .sidebar:not(.open), .map-floating-controls:not(.open) { display: none; }
+  /* display:none→visible reinicia la animación: cada apertura vuelve a entrar con vida */
+  .sidebar.open, .map-floating-controls.open, .stop-explorer { animation: panel-pop var(--dur) var(--ease); }
 
   /* ── Geografía del mapa en escritorio (patrón Google Maps) ────────────────────────
      DERECHA  = navegación ("cómo me muevo"): brújula · pantalla completa · GPS · zoom.
@@ -137,7 +151,12 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
 .radio-stop-dist { font: 600 9px/1 var(--mono); color: var(--text-lo); flex: none; }
 .radio-stop-go { flex: none; font-size: 13px; color: var(--carto); text-decoration: none; padding: 2px 5px; }
 .radio-stop-go:hover { background: var(--surface-3); }
-.compass-rose { cursor: pointer; padding: 2px; }
+/* Rosa de los vientos: mismo pie (40px) que el resto de la columna de navegación —
+   antes medía 44px y desentonaba con los botones de 38+borde. */
+.compass-rose { cursor: pointer; padding: 1px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: transform var(--dur-fast) var(--ease); }
+.compass-rose svg { display: block; }
+.compass-rose:hover { transform: scale(1.06); }
+.compass-rose:active { transform: scale(.96); }
 .compass-rose .compass-dial { transform-origin: 24px 24px; transition: transform .1s linear; }
 
 /* ═══ Panel lateral ═══ */
@@ -223,7 +242,8 @@ html[data-theme="dark"] .maplibregl-ctrl-group:not(.compass-rose) button .maplib
 .export-btn { height: 44px; border: none; background: var(--accent); color: #fff; font: 600 12px/1 var(--sans); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: filter .15s; border-radius: var(--r-inner); }
 .export-btn:hover { filter: brightness(1.12); }
 
-.zoom-indicator-box { background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); padding: 7px 11px; box-shadow: var(--shadow-sm); font: 600 var(--fs-xs)/1 var(--mono); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-pill); }
+/* Altura fijada a la del ⓘ de atribución de al lado: antes cada pastilla medía lo suyo */
+.zoom-indicator-box { display: inline-flex; align-items: center; height: 28px; background: var(--glass-bg); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); padding: 0 11px; box-shadow: var(--shadow-sm); font: 600 var(--fs-xs)/1 var(--mono); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-pill); }
 .zone-tooltip { background: transparent; color: var(--text-hi); border: none; font-family: var(--sans); font-weight: 700; font-size: 12px; padding: 0; box-shadow: none; text-shadow: 1.5px 1.5px 0 rgba(0,0,0,.85), -1.5px -1.5px 0 rgba(0,0,0,.85), 1.5px -1.5px 0 rgba(0,0,0,.85), -1.5px 1.5px 0 rgba(0,0,0,.85); }
 .zone-tooltip::before { display: none !important; }
 

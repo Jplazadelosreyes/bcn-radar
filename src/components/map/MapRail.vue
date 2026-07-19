@@ -60,10 +60,12 @@ const secciones = [
   width: 54px; padding: 8px 2px 6px; border: 1px solid transparent; border-radius: 13px;
   background: none; color: var(--text-lo); cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: background .15s, border-color .15s, color .15s;
+  transition: background .15s, border-color .15s, color .15s, transform var(--dur-fast) var(--ease);
 }
 .map-rail-btn:hover { background: color-mix(in srgb, var(--surface-3) 60%, transparent); color: var(--text-hi); }
-.map-rail-ico { font-size: 19px; line-height: 1; }
+.map-rail-btn:active { transform: scale(.94); }
+.map-rail-ico { font-size: 19px; line-height: 1; transition: transform var(--dur-fast) var(--ease); }
+.map-rail-btn:hover .map-rail-ico { transform: translateY(-1px); }
 .map-rail-label { font: 600 9px/1 var(--sans); letter-spacing: .01em; }
 /* Seleccionado: borde de acento + fondo suave (la "marca de borde" pedida) */
 .map-rail-btn.active {

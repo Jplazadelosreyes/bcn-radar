@@ -104,7 +104,11 @@
     border: 1px solid var(--border-2); background: var(--float-bg); color: var(--text-hi);
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     box-shadow: 0 4px 14px rgba(0,0,0,.22); cursor: pointer; font-size: 15px; line-height: 1;
+    /* transform (feedback al pulsar) + opacity (fade con sheet abierto, regla de arriba):
+       las dos en la misma declaración — una transition posterior sustituye a la anterior */
+    transition: transform var(--dur-fast) var(--ease), opacity .2s ease;
   }
+  .fab-round:active { transform: scale(.92); }
   /* Todo lo de abajo se apoya en la barra de navegación, nunca debajo de ella */
   .fab-utils { bottom: calc(var(--nav-safe) + 44px); left: 8px; }
   .fab-utils svg { transition: transform .25s ease; }
